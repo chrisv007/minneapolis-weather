@@ -35,7 +35,7 @@ This repo deploys through Cloudflare Workers Builds, connected directly to this 
 1. The Cloudflare project (`minneapolis-weather`, live at `minneapolis-weather.chris-vierig.workers.dev`) is already connected to this repo through Cloudflare's dashboard.
 2. Cloudflare watches the `main` branch. Any push to `main` automatically triggers a build and deploy on Cloudflare's own servers.
 3. The deploy command Cloudflare runs is `npx wrangler deploy`, using a Cloudflare API token stored inside the Cloudflare dashboard, scoped to this project. That token lives on Cloudflare's side, not in this local environment, not in this repo, and not in any environment variable available here.
-4. Static assets are served from the repo root per `wrangler.jsonc` (`assets.directory: "./"`). `.assetsignore` excludes non-site files (`README.md`, `wrangler.jsonc`, `CLAUDE.md`, `.gitignore`, `.git`) from being served as public assets.
+4. Static assets are served from the repo root per `wrangler.jsonc` (`assets.directory: "./"`). `.assetsignore` excludes non-site files (`README.md`, `wrangler.jsonc`, `CLAUDE.md`, `weather-dashboard-project-notes.md`, `.gitignore`, `.git`) from being served as public assets.
 
 **What this means for you, Claude Code:**
 - Never run `wrangler deploy`, `wrangler pages deploy`, or any deploy command yourself in this local environment.

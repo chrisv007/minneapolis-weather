@@ -118,6 +118,25 @@
     border-radius:8px;padding:9px 10px;flex:1 1 200px;min-width:0;color:var(--ink);}
   .pwkey button{flex:0 0 auto;}
   .pwlink{font-size:11px;color:var(--nws);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;}
+  /* 7-day high-temperature range bars */
+  .wk{margin-top:2px;}
+  .wkrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+  .wkrow:first-child{border-top:none;}
+  .wkday{width:46px;flex:0 0 auto;}
+  .wkday .d{font-size:14px;font-weight:600;line-height:1.1;}
+  .wkday .n{font-size:10px;color:var(--muted);}
+  .wktrack{position:relative;flex:1;height:20px;}
+  .wkaxis{position:absolute;left:0;right:0;top:9px;height:2px;background:var(--line);border-radius:2px;}
+  .wkbar{position:absolute;top:6px;height:8px;border-radius:4px;}
+  .wkmed{position:absolute;top:1px;width:3px;height:18px;border-radius:2px;transform:translateX(-50%);}
+  .wkcons{position:absolute;top:5px;width:9px;height:9px;border:2px solid var(--cons);border-radius:50%;
+    background:var(--panel);transform:translateX(-50%);box-sizing:border-box;}
+  .wknum{width:76px;flex:0 0 auto;text-align:right;font-family:var(--mono);}
+  .wknum .wkhi{font-size:16px;font-weight:700;line-height:1.05;}
+  .wknum .wkrange{font-size:10px;color:var(--muted);}
+  .wkscale{border-top:1px solid var(--line);padding-top:6px;}
+  .wkscale .wknum{font-size:10px;color:var(--muted);font-weight:400;font-family:inherit;}
+  .wkends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:var(--mono);}
 </style>
 </head>
 <body>
@@ -139,11 +158,6 @@
   <div class="panel">
     <h2>Next 2 hours &mdash; precipitation nowcast</h2>
     <div id="nowcast"></div>
-  </div>
-
-  <div class="panel">
-    <h2>Pirate Weather &mdash; minute by minute (next 60 min)</h2>
-    <div id="pirate"></div>
   </div>
 
   <div class="panel">
@@ -174,6 +188,11 @@
     <div class="cap" id="weekcap"></div>
     <div style="margin-top:12px" id="daily"></div>
     <div class="note">Per-day squares show source agreement: T = high temp, P = precip chance, W = wind gusts. Green agree · amber some spread · red split.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Pirate Weather &mdash; minute by minute (next 60 min)</h2>
+    <div id="pirate"></div>
   </div>
 
   <div class="panel">
@@ -600,21 +619,42 @@ function renderWeek(){
   const ens=state.ensemble?.status==="ok"?state.ensemble.data:null;
   const rows=keys.slice(0,7).map(({key,ms})=>{
     const highs=FC.map(id=>(okd(id)?.daily||[]).find(x=>x.key===key)?.tMax).filter(v=>v!=null);
-    const row={label:fmtDay(ms)};
+    const row={ms,label:fmtDay(ms),date:fmtDateNum(ms)};
     if(highs.length)row.cons=Math.round(median(highs));
     const e=ens?ens.daily.find(d=>d.key===key):null;
-    if(e&&e.p10!=null){row.eLo=e.p10;row.eHi=e.p90;row.eMed=Math.round(e.p50);}
-    else if(highs.length){row.eLo=Math.min(...highs);row.eHi=Math.max(...highs);}
-    return row;});
-  const bandColor=ens?"rgba(31,111,178,0.16)":"rgba(58,74,82,0.12)";
-  const series=[];
-  if(ens)series.push({id:"eMed",color:C.nws,width:2.4});
-  series.push({id:"cons",color:C.cons,width:2.2,dash:"5 4"});
-  document.getElementById("weekchart").innerHTML=chartSVG(rows,series,
-    {height:200,xEvery:1,band:{loKey:"eLo",hiKey:"eHi",color:bandColor},yFmt:v=>Math.round(v)+"°"});
-  document.getElementById("weekcap").innerHTML=ens
-    ? `<span><b style="color:rgba(31,111,178,0.5)">▣</b> ensemble 10–90% (${ens.members} GFS runs)</span><span><b style="color:${C.nws}">━</b> ensemble median high</span><span><b style="color:${C.cons}">┄</b> 4-model consensus high</span>`
-    : `<span><b style="color:rgba(58,74,82,0.45)">▣</b> model high spread</span><span><b style="color:${C.cons}">┄</b> consensus high</span><span style="color:${C.bad}">ensemble unavailable</span>`;
+    if(e&&e.p10!=null){row.lo=e.p10;row.hi=e.p90;row.med=Math.round(e.p50);}
+    else if(highs.length){row.lo=Math.min(...highs);row.hi=Math.max(...highs);row.med=row.cons;}
+    return row;
+  }).filter(r=>r.lo!=null&&r.med!=null);
+  const el=document.getElementById("weekchart"),cap=document.getElementById("weekcap");
+  if(!rows.length){el.innerHTML='<div class="sub">Loading…</div>';cap.innerHTML="";return;}
+  // one shared temperature scale across all seven days so bar positions are comparable
+  let vals=[];rows.forEach(r=>{vals.push(r.lo,r.hi,r.med);if(r.cons!=null)vals.push(r.cons);});
+  let dMin=Math.min(...vals),dMax=Math.max(...vals);const pad=Math.max(2,(dMax-dMin)*0.08);dMin-=pad;dMax+=pad;
+  const span=dMax-dMin||1,pos=v=>(v-dMin)/span*100;
+  const barCol=ens?"rgba(31,111,178,0.28)":"rgba(58,74,82,0.20)",medCol=ens?C.nws:C.cons;
+  let showCons=false,html='<div class="wk">';
+  rows.forEach(r=>{
+    const left=pos(r.lo),width=Math.max(pos(r.hi)-left,1.5),medP=pos(r.med);
+    let consTick="";
+    if(ens&&r.cons!=null&&Math.abs(r.cons-r.med)>=1){showCons=true;
+      consTick=`<span class="wkcons" style="left:${pos(r.cons)}%" title="4-model consensus ${r.cons}°"></span>`;}
+    html+=`<div class="wkrow"><div class="wkday"><div class="d">${r.label}</div><div class="n">${r.date}</div></div>`+
+      `<div class="wktrack"><div class="wkaxis"></div>`+
+      `<div class="wkbar" style="left:${left}%;width:${width}%;background:${barCol}" title="10–90% range: ${Math.round(r.lo)}–${Math.round(r.hi)}°"></div>`+
+      `<span class="wkmed" style="left:${medP}%;background:${medCol}" title="median high ${r.med}°"></span>${consTick}</div>`+
+      `<div class="wknum"><div class="wkhi">${r.med}°</div><div class="wkrange">${Math.round(r.lo)}–${Math.round(r.hi)}°</div></div></div>`;
+  });
+  html+=`<div class="wkrow wkscale"><div class="wkday"></div><div class="wktrack"><div class="wkends"><span>${Math.round(dMin)}°</span><span>${Math.round(dMax)}°</span></div></div><div class="wknum">high · range</div></div>`;
+  el.innerHTML=html+'</div>';
+  const sw=css=>`<span style="display:inline-block;vertical-align:middle;${css}"></span>`;
+  cap.innerHTML=ens
+    ? `<span>${sw(`width:3px;height:12px;border-radius:2px;background:${medCol}`)} ensemble median high (best estimate)</span>`+
+      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} 10–90% range across ${ens.members} GFS runs &mdash; wider = less certain</span>`+
+      (showCons?`<span>${sw(`width:9px;height:9px;border-radius:50%;border:2px solid ${C.cons};box-sizing:border-box`)} 4-model consensus high</span>`:"")
+    : `<span>${sw(`width:3px;height:12px;border-radius:2px;background:${medCol}`)} consensus high</span>`+
+      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} model spread (lowest&ndash;highest)</span>`+
+      `<span style="color:${C.bad}">ensemble unavailable</span>`;
 }
 
 function renderDaily(){
