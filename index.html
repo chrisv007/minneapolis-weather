@@ -44,21 +44,30 @@
   .srow{border-top:1px solid var(--line);padding:12px 0;}
   .srow .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
   .srow .lab{font-size:14px;font-weight:600;}
-  .track{position:relative;height:28px;margin:0 4px;}
-  .track .axis{position:absolute;left:0;right:0;top:12px;height:1px;background:var(--line);}
-  .tick{position:absolute;top:0;transform:translateX(-50%);}
-  .tick .stem{width:2px;height:14px;margin:0 auto;}
-  .tick .bead{width:10px;height:10px;border-radius:50%;border:2px solid;background:var(--panel);margin:0 auto;}
+  .track{position:relative;margin:0 6px;}
+  .track .axis{position:absolute;left:0;right:0;top:12px;height:2px;background:var(--line);border-radius:1px;}
+  .tick{position:absolute;top:8px;transform:translateX(-50%);}
+  .tick .stem{position:absolute;left:50%;top:5px;width:2px;transform:translateX(-50%);background:var(--line);}
+  .tick .bead{position:relative;width:10px;height:10px;border-radius:50%;border:2.5px solid;background:var(--panel);}
   .ticklabels,.catitems{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;}
   .ticklabels span,.catitems span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;
     font-family:var(--mono);}
   /* grid */
   table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
-  th,td{padding:8px;text-align:right;white-space:nowrap;}
+  th,td{padding:7px 6px;text-align:right;white-space:nowrap;}
   th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);}
   th{font-size:11px;font-weight:600;color:var(--muted);}
   tbody tr{border-top:1px solid var(--line);}
-  .scroll{overflow-x:auto;}
+  td .u{font-size:10px;color:var(--muted);font-weight:400;}
+  td.wrapcell{white-space:normal;font-size:11px;line-height:1.25;max-width:88px;}
+  /* scroll shadows hint that the table pans sideways */
+  .scroll{overflow-x:auto;background:
+    linear-gradient(90deg,var(--panel) 30%,rgba(255,255,255,0)),
+    linear-gradient(90deg,rgba(255,255,255,0),var(--panel) 70%) 100% 0,
+    radial-gradient(farthest-side at 0 50%,rgba(22,36,43,.16),transparent),
+    radial-gradient(farthest-side at 100% 50%,rgba(22,36,43,.16),transparent) 100% 0;
+    background-repeat:no-repeat;background-size:40px 100%,40px 100%,14px 100%,14px 100%;
+    background-attachment:local,local,scroll,scroll;}
   .note{font-size:10px;color:var(--muted);margin-top:8px;}
   .cap{font-size:10px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;}
   .cap b{font-weight:600;color:var(--ink);}
@@ -67,22 +76,15 @@
   .today .item{display:flex;flex-direction:column;}
   .today .k{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
   .today .v{font-size:15px;font-weight:600;font-family:var(--mono);}
-  /* daily */
-  .day{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;}
-  .day:first-of-type{border-top:none;}
-  .day .dname{width:50px;flex:0 0 auto;}
-  .day .dname .d{font-size:14px;font-weight:600;}
-  .day .dname .n{font-size:10px;color:var(--muted);}
-  .day .cells{flex:1;display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--mono);}
-  .day .cells span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
-  .agg{display:flex;gap:3px;flex:0 0 auto;}
-  .agg b{width:18px;height:18px;border-radius:4px;color:#fff;font-size:9px;font-weight:700;
+  .agg{display:flex;gap:3px;flex:0 0 auto;margin-left:auto;}
+  .agg b{width:17px;height:17px;border-radius:4px;color:#fff;font-size:9px;font-weight:700;
     display:flex;align-items:center;justify-content:center;}
   .statusrow{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:6px 0;}
   .statusrow .s{font-family:var(--mono);}
   .statusrow.aux{opacity:.8;}
   .chart{width:100%;}
   svg{display:block;width:100%;height:auto;}
+  .chart svg{max-width:560px;margin:0 auto;}
   /* nowcast */
   .nchead-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
   .ncrow{margin-top:12px;}
@@ -94,6 +96,8 @@
   .nccell{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;}
   .ncbar{width:100%;border-radius:2px 2px 0 0;min-height:2px;}
   .ncnone{width:100%;border-bottom:2px dotted var(--line);margin-bottom:1px;}
+  .ncflat{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px;margin-top:3px;}
+  .ncflat .base{flex:1;border-bottom:2px dotted var(--line);}
   .ncaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;
     font-family:var(--mono);padding-left:3px;}
   .nclegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11px;color:var(--muted);align-items:center;}
@@ -120,11 +124,15 @@
   .pwlink{font-size:11px;color:var(--nws);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;}
   /* 7-day high-temperature range bars */
   .wk{margin-top:2px;}
-  .wkrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);}
+  .wkrow{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
   .wkrow:first-child{border-top:none;}
   .wkday{width:46px;flex:0 0 auto;}
   .wkday .d{font-size:14px;font-weight:600;line-height:1.1;}
   .wkday .n{font-size:10px;color:var(--muted);}
+  .wkbody{flex:1;min-width:0;}
+  .wkmain{display:flex;align-items:center;gap:10px;}
+  .wksrc{display:flex;flex-wrap:wrap;gap:3px 10px;align-items:center;margin-top:6px;font-family:var(--mono);}
+  .wksrc span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
   .wktrack{position:relative;flex:1;height:20px;}
   .wkaxis{position:absolute;left:0;right:0;top:9px;height:2px;background:var(--line);border-radius:2px;}
   .wkbar{position:absolute;top:6px;height:8px;border-radius:4px;}
@@ -169,7 +177,7 @@
   <div class="panel">
     <h2>Current conditions by source</h2>
     <div class="scroll"><table id="grid"></table></div>
-    <div class="note">Bold = highest (red) / lowest (blue) among forecasts. Cons. = median of the four forecasts. NWS forecast publishes no pressure/visibility; ECMWF omits some fields (n/a).</div>
+    <div class="note">Bold <b style="color:#D9583B">&#9650;</b> = highest / bold &#9660; = lowest of the four forecasts. Cons. = median of the four forecasts. NWS forecast publishes no pressure/visibility; ECMWF omits some fields (n/a). Swipe sideways if columns are cut off.</div>
   </div>
 
   <div class="panel">
@@ -186,8 +194,7 @@
     <h2>7-day high temperature &amp; uncertainty</h2>
     <div class="chart" id="weekchart"></div>
     <div class="cap" id="weekcap"></div>
-    <div style="margin-top:12px" id="daily"></div>
-    <div class="note">Per-day squares show source agreement: T = high temp, P = precip chance, W = wind gusts. Green agree · amber some spread · red split.</div>
+    <div class="note">Each day: high/low per source, and agreement squares (T = high temp, P = precip chance, W = wind gusts; green agree · amber some spread · red split).</div>
   </div>
 
   <div class="panel">
@@ -427,7 +434,8 @@ async function loadAll(){
 /* ===================== chart ===================== */
 function chartSVG(data,series,opts){
   opts=opts||{};
-  const W=720,H=opts.height||220,pl=34,pr=10,pt=10,pb=22,iw=W-pl-pr,ih=H-pt-pb;
+  // viewBox width ~= a phone's CSS width so axis text renders at true size on mobile
+  const W=360,H=opts.height||170,pl=30,pr=8,pt=8,pb=20,iw=W-pl-pr,ih=H-pt-pb;
   let vals=[];
   series.forEach(s=>data.forEach(d=>{if(typeof d[s.id]==="number")vals.push(d[s.id]);}));
   if(opts.band)data.forEach(d=>{if(typeof d[opts.band.loKey]==="number")vals.push(d[opts.band.loKey]);if(typeof d[opts.band.hiKey]==="number")vals.push(d[opts.band.hiKey]);});
@@ -503,7 +511,7 @@ function renderNowSummary(){
   }else if(consT!=null){bigV=Math.round(consT)+"°";bigSub="Forecast consensus (no live observation)";}
   if(consT!=null&&range!=null){
     consLine=`<span class="chip" style="background:${LCOL[tlvl]};margin-right:6px">${LBL[tlvl]}</span>`+
-      `Forecast nowcast consensus <b>${Math.round(consT)}°</b> · sources ${range.toFixed(0)}°F apart`+
+      `Forecast consensus now <b>${Math.round(consT)}°</b> · sources ${range.toFixed(0)}°F apart`+
       (obs&&obs.temp!=null?` · actual is ${Math.abs(Math.round(obs.temp-consT))}° ${obs.temp>=consT?"above":"below"} consensus`:"");
   }
   document.getElementById("nowsum").innerHTML=
@@ -511,18 +519,33 @@ function renderNowSummary(){
     `<div class="cons">${consLine}</div></div><div class="read">${esc(headline)}</div></div>`;
 }
 
+// The track's full width always represents at least 1.5x the high-disagreement
+// threshold, so agreeing sources cluster visually and only real disagreement
+// spreads the beads out. Beads that would overlap drop to a lower lane on a
+// short gray stem (same horizontal position = same value).
+function spreadTicks(values,hi){
+  const nums=values.map(v=>v.value),mn=Math.min(...nums),mx=Math.max(...nums),range=mx-mn;
+  const axisSpan=Math.max(range,hi*1.5)||1,mid=(mn+mx)/2,axisMin=mid-axisSpan/2;
+  const ticks=values.map(v=>({...v,pct:(v.value-axisMin)/axisSpan*100})).sort((a,b)=>a.pct-b.pct);
+  const laneLast=[];
+  ticks.forEach(t=>{let k=0;while(laneLast[k]!=null&&t.pct-laneLast[k]<7)k++;t.lane=k;laneLast[k]=t.pct;});
+  return {ticks,maxLane:Math.max(...ticks.map(t=>t.lane))};
+}
 function spreadStrip(label,unit,entries,lo,hi,dec,note){
   dec=dec||0;
   const vals=entries.filter(e=>e.value!=null);
   if(!vals.length)return `<div class="srow"><div class="head"><span class="lab">${label}</span><span class="sub">no data</span></div></div>`;
-  const nums=vals.map(e=>e.value),mn=Math.min(...nums),mx=Math.max(...nums),range=mx-mn,span=range||1,lvl=level(range,lo,hi);
+  const nums=vals.map(e=>e.value),mn=Math.min(...nums),mx=Math.max(...nums),range=mx-mn,lvl=level(range,lo,hi);
+  const {ticks:tk,maxLane}=spreadTicks(vals,hi);
   let ticks="",labs="";
-  vals.forEach(e=>{const pct=(e.value-mn)/span*100;
-    ticks+=`<div class="tick" style="left:${pct}%"><div class="stem" style="background:${e.color}"></div><div class="bead" style="border-color:${e.color}"></div></div>`;
-    labs+=`<span><span class="dot" style="background:${e.color}"></span>${e.short} ${e.value.toFixed(dec)}${unit}</span>`;});
+  tk.forEach(t=>{
+    ticks+=`<div class="tick" style="left:${t.pct.toFixed(2)}%">`+
+      (t.lane>0?`<div class="stem" style="height:${t.lane*12}px"></div>`:"")+
+      `<div class="bead" style="border-color:${t.color};margin-top:${t.lane*12}px"></div></div>`;});
+  vals.forEach(e=>{labs+=`<span><span class="dot" style="background:${e.color}"></span>${e.short} ${e.value.toFixed(dec)}${unit}</span>`;});
   return `<div class="srow"><div class="head"><span class="lab">${label}</span>
     <span class="chip" style="background:${LCOL[lvl]}">${LBL[lvl]} · ${range.toFixed(dec)}${unit}</span></div>
-    <div class="track"><div class="axis"></div>${ticks}</div><div class="ticklabels">${labs}</div>
+    <div class="track" style="height:${20+maxLane*12}px"><div class="axis"></div>${ticks}</div><div class="ticklabels">${labs}</div>
     ${note?`<div class="note">${note}</div>`:""}</div>`;
 }
 function catRow(label,verdict,color,items){
@@ -558,14 +581,14 @@ function renderGrid(){
   const V=[
     {k:"temp",l:"Temp",u:"°F",f:v=>Math.round(v)},
     {k:"feelsLike",l:"Feels like",u:"°F",f:v=>Math.round(v)},
-    {k:"conditions",l:"Conditions",u:"",f:v=>v,t:1},
-    {k:"windSpeed",l:"Wind",u:" mph",f:v=>Math.round(v)},
-    {k:"windGust",l:"Gusts",u:" mph",f:v=>Math.round(v)},
+    {k:"conditions",l:"Conditions",u:"",f:v=>v,t:1,wrap:1},
+    {k:"windSpeed",l:"Wind",u:"mph",f:v=>Math.round(v)},
+    {k:"windGust",l:"Gusts",u:"mph",f:v=>Math.round(v)},
     {k:"windDir",l:"Wind dir",u:"",f:v=>compass(v)||Math.round(v)+"°",t:1},
     {k:"humidity",l:"Humidity",u:"%",f:v=>Math.round(v)},
     {k:"dewPoint",l:"Dew point",u:"°F",f:v=>Math.round(v)},
-    {k:"pressure",l:"Pressure",u:" inHg",f:v=>v.toFixed(2)},
-    {k:"visibility",l:"Visibility",u:" mi",f:v=>v.toFixed(1)},
+    {k:"pressure",l:"Pressure",u:"inHg",f:v=>v.toFixed(2)},
+    {k:"visibility",l:"Visibility",u:"mi",f:v=>v.toFixed(1)},
   ];
   let head="<thead><tr><th>Variable</th>"+ALL.map(id=>`<th style="color:${META[id].color}">${META[id].short}</th>`).join("")+
     `<th style="color:${C.cons}">Cons.</th></tr></thead>`;
@@ -573,18 +596,21 @@ function renderGrid(){
   V.forEach(v=>{
     const nums=FC.map(id=>cur(id)?.[v.k]).filter(x=>typeof x==="number");
     const mn=!v.t&&nums.length?Math.min(...nums):null,mx=!v.t&&nums.length?Math.max(...nums):null;
-    body+="<tr><td>"+v.l+"</td>";
-    ALL.forEach(id=>{const st=state.sources[id];let txt="·",col=C.ink,w="normal";
+    // unit lives in the row label so the value cells stay narrow
+    body+=`<tr><td>${v.l}${v.u?` <span class="u">${v.u}</span>`:""}</td>`;
+    ALL.forEach(id=>{const st=state.sources[id];let txt="·",col=C.ink,w="normal",mark="";
       if(st.status==="loading")txt="…";
       else if(st.status==="error"){txt="—";col=C.muted;}
       else{const val=cur(id)?.[v.k];
         if(val==null||val==="")  {txt="n/a";col=C.muted;}
-        else{txt=v.f(val)+v.u;
-          if(!v.t&&typeof val==="number"&&nums.length>1){if(val===mx&&mx!==mn){w="bold";col=C.bad;}else if(val===mn&&mx!==mn){w="bold";col=C.nws;}}}}
-      body+=`<td style="color:${col};font-weight:${w}">${esc(txt)}</td>`;});
+        else{txt=String(v.f(val));
+          if(!v.t&&typeof val==="number"&&nums.length>1){
+            if(val===mx&&mx!==mn){w="bold";mark=`<span style="color:${C.bad}">▲</span>`;}
+            else if(val===mn&&mx!==mn){w="bold";mark="▼";}}}}
+      body+=`<td class="${v.wrap?"wrapcell":""}" style="color:${col};font-weight:${w}">${mark}${esc(txt)}</td>`;});
     // consensus cell
     let cc="—";
-    if(!v.t&&nums.length){cc=v.f(median(nums))+v.u;}
+    if(!v.t&&nums.length){cc=String(v.f(median(nums)));}
     body+=`<td style="background:#F4F6F5;color:${C.cons};font-weight:600">${esc(cc)}</td>`;
     body+="</tr>";});
   body+="<tr><td>Updated</td>"+ALL.map(id=>`<td style="color:${C.muted};font-size:10px">${cur(id)?.time?fmtTime(cur(id).time):"—"}</td>`).join("")+`<td style="background:#F4F6F5"></td></tr>`;
@@ -605,9 +631,9 @@ function renderHourlyCharts(){
   const srcSeries=FC.map(id=>({id,color:META[id].color,width:1.6}));
   const consSeries={id:"cons",color:C.cons,width:2.6};
   document.getElementById("tempchart").innerHTML=chartSVG(tdata,[...srcSeries,consSeries],
-    {height:220,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
+    {height:170,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
   document.getElementById("precipchart").innerHTML=chartSVG(pdata,[...srcSeries,consSeries],
-    {height:180,yMin:0,yMax:100,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
+    {height:140,yMin:0,yMax:100,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
   document.getElementById("tempcap").innerHTML=
     `<span><b style="color:${C.cons}">━</b> consensus (median)</span><span><b style="color:rgba(58,74,82,0.45)">▣</b> source spread</span>`+
     FC.map(id=>`<span><span class="dot" style="background:${META[id].color}"></span>${META[id].short}</span>`).join("");
@@ -618,8 +644,9 @@ function renderWeek(){
   keys.sort((a,b)=>a.ms-b.ms);
   const ens=state.ensemble?.status==="ok"?state.ensemble.data:null;
   const rows=keys.slice(0,7).map(({key,ms})=>{
-    const highs=FC.map(id=>(okd(id)?.daily||[]).find(x=>x.key===key)?.tMax).filter(v=>v!=null);
-    const row={ms,label:fmtDay(ms),date:fmtDateNum(ms)};
+    const recs=FC.map(id=>({...META[id],d:(okd(id)?.daily||[]).find(x=>x.key===key)}));
+    const highs=recs.map(r=>r.d?.tMax).filter(v=>v!=null);
+    const row={ms,key,recs,label:fmtDay(ms),date:fmtDateNum(ms)};
     if(highs.length)row.cons=Math.round(median(highs));
     const e=ens?ens.daily.find(d=>d.key===key):null;
     if(e&&e.p10!=null){row.lo=e.p10;row.hi=e.p90;row.med=Math.round(e.p50);}
@@ -633,19 +660,27 @@ function renderWeek(){
   let dMin=Math.min(...vals),dMax=Math.max(...vals);const pad=Math.max(2,(dMax-dMin)*0.08);dMin-=pad;dMax+=pad;
   const span=dMax-dMin||1,pos=v=>(v-dMin)/span*100;
   const barCol=ens?"rgba(31,111,178,0.28)":"rgba(58,74,82,0.20)",medCol=ens?C.nws:C.cons;
+  const range=(arr)=>{const v=arr.filter(x=>x!=null);return v.length>1?Math.max(...v)-Math.min(...v):(v.length?0:null);};
   let showCons=false,html='<div class="wk">';
   rows.forEach(r=>{
     const left=pos(r.lo),width=Math.max(pos(r.hi)-left,1.5),medP=pos(r.med);
     let consTick="";
     if(ens&&r.cons!=null&&Math.abs(r.cons-r.med)>=1){showCons=true;
       consTick=`<span class="wkcons" style="left:${pos(r.cons)}%" title="4-model consensus ${r.cons}°"></span>`;}
+    // per-source high/low detail + agreement squares live in the same row
+    const tR=range(r.recs.map(x=>x.d?.tMax)),pR=range(r.recs.map(x=>x.d?.precipProbMax)),wR=range(r.recs.map(x=>x.d?.gustMax));
+    const tL=level(tR,3,6),pL=level(pR,20,40),wL=level(wR,8,15);
+    let cs="";r.recs.forEach(x=>{cs+=`<span><span class="dot" style="background:${x.color}"></span>${x.short} <span style="color:${C.ink}">${x.d?.tMax!=null?Math.round(x.d.tMax):"–"}<span style="color:${C.muted}">/${x.d?.tMin!=null?Math.round(x.d.tMin):"–"}</span></span></span>`;});
+    const sq=(lvl,ltr,title)=>`<b style="background:${lvl?LCOL[lvl]:C.line};color:${lvl?"#fff":C.muted}" title="${title}">${ltr}</b>`;
+    const agg=`<div class="agg">${sq(tL,"T","High temp spread "+(tR!=null?tR.toFixed(0)+"°":"n/a"))}${sq(pL,"P","Precip-chance spread "+(pR!=null?pR.toFixed(0)+"%":"n/a"))}${sq(wL,"W","Gust spread "+(wR!=null?wR.toFixed(0)+" mph":"n/a"))}</div>`;
     html+=`<div class="wkrow"><div class="wkday"><div class="d">${r.label}</div><div class="n">${r.date}</div></div>`+
-      `<div class="wktrack"><div class="wkaxis"></div>`+
+      `<div class="wkbody"><div class="wkmain"><div class="wktrack"><div class="wkaxis"></div>`+
       `<div class="wkbar" style="left:${left}%;width:${width}%;background:${barCol}" title="10–90% range: ${Math.round(r.lo)}–${Math.round(r.hi)}°"></div>`+
       `<span class="wkmed" style="left:${medP}%;background:${medCol}" title="median high ${r.med}°"></span>${consTick}</div>`+
-      `<div class="wknum"><div class="wkhi">${r.med}°</div><div class="wkrange">${Math.round(r.lo)}–${Math.round(r.hi)}°</div></div></div>`;
+      `<div class="wknum"><div class="wkhi">${r.med}°</div><div class="wkrange">${Math.round(r.lo)}–${Math.round(r.hi)}°</div></div></div>`+
+      `<div class="wksrc">${cs}${agg}</div></div></div>`;
   });
-  html+=`<div class="wkrow wkscale"><div class="wkday"></div><div class="wktrack"><div class="wkends"><span>${Math.round(dMin)}°</span><span>${Math.round(dMax)}°</span></div></div><div class="wknum">high · range</div></div>`;
+  html+=`<div class="wkrow wkscale"><div class="wkday"></div><div class="wkbody"><div class="wkmain"><div class="wktrack"><div class="wkends"><span>${Math.round(dMin)}°</span><span>${Math.round(dMax)}°</span></div></div><div class="wknum">high · range</div></div></div></div>`;
   el.innerHTML=html+'</div>';
   const sw=css=>`<span style="display:inline-block;vertical-align:middle;${css}"></span>`;
   cap.innerHTML=ens
@@ -655,23 +690,6 @@ function renderWeek(){
     : `<span>${sw(`width:3px;height:12px;border-radius:2px;background:${medCol}`)} consensus high</span>`+
       `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} model spread (lowest&ndash;highest)</span>`+
       `<span style="color:${C.bad}">ensemble unavailable</span>`;
-}
-
-function renderDaily(){
-  const keys=[];FC.forEach(id=>(okd(id)?.daily||[]).forEach(d=>{if(!keys.find(k=>k.key===d.key))keys.push({key:d.key,ms:d.ms});}));
-  keys.sort((a,b)=>a.ms-b.ms);
-  let html="";
-  if(!keys.length)html='<span class="sub">Loading…</span>';
-  keys.slice(0,7).forEach(({key,ms})=>{
-    const recs=FC.map(id=>({...META[id],d:(okd(id)?.daily||[]).find(x=>x.key===key)}));
-    const range=(arr)=>{const v=arr.filter(x=>x!=null);return v.length>1?Math.max(...v)-Math.min(...v):(v.length?0:null);};
-    const tR=range(recs.map(r=>r.d?.tMax)),pR=range(recs.map(r=>r.d?.precipProbMax)),wR=range(recs.map(r=>r.d?.gustMax));
-    const tL=level(tR,3,6),pL=level(pR,20,40),wL=level(wR,8,15);
-    let cs="";recs.forEach(r=>{cs+=`<span><span class="dot" style="background:${r.color}"></span>${r.short} <span style="color:${C.ink}">${r.d?.tMax!=null?Math.round(r.d.tMax):"–"}<span style="color:${C.muted}">/${r.d?.tMin!=null?Math.round(r.d.tMin):"–"}</span></span></span>`;});
-    const sq=(lvl,ltr,title)=>`<b style="background:${lvl?LCOL[lvl]:C.line};color:${lvl?"#fff":C.muted}" title="${title}">${ltr}</b>`;
-    const agg=`<div class="agg">${sq(tL,"T","High temp spread "+(tR!=null?tR.toFixed(0)+"°":"n/a"))}${sq(pL,"P","Precip-chance spread "+(pR!=null?pR.toFixed(0)+"%":"n/a"))}${sq(wL,"W","Gust spread "+(wR!=null?wR.toFixed(0)+" mph":"n/a"))}</div>`;
-    html+=`<div class="day"><div class="dname"><div class="d">${fmtDay(ms)}</div><div class="n">${fmtDateNum(ms)}</div></div><div class="cells">${cs}</div>${agg}</div>`;});
-  document.getElementById("daily").innerHTML=html;
 }
 
 function nowcastTier(c){
@@ -736,37 +754,40 @@ function renderNowcast(){
       if(sp>=30){chip="Timing split ~"+sp+"m";chipCol=C.med;}else{chip="Sources agree";chipCol=C.good;}
     }else{chip="Sources split";chipCol=C.bad;}
   }
-  let strips="";
+  let strips="";const typesPresent=new Set();let anyWetRow=false;
   rows.forEach(r=>{
     if(!r.cells||!r.cells.length){
       strips+=`<div class="ncrow"><div class="nchead"><span class="dot" style="background:${r.color}"></span><span class="nm">${r.name}</span><span class="tag" style="color:${C.muted}">${r.status==="error"?"unavailable":"…"}</span></div></div>`;
       return;}
-    const s=sums[r.id];const anyWet=r.cells.some(c=>nowcastTier(c).tier>0);let cells="";
-    if(!anyWet){
-      cells=`<div style="flex:1;display:flex;align-items:center;justify-content:center;color:${C.muted};font-size:12px">no measurable precip modeled</div>`;
-    }else{
-      r.cells.forEach(c=>{const tc=nowcastTier(c);
-        if(tc.tier===0){cells+=`<div class="nccell"><div class="ncnone"></div></div>`;}
-        else{const col=NC_COLOR[tc.type][tc.tier];
-          cells+=`<div class="nccell" title="${fmtTime(c.ms)} · ${(c.precip||0).toFixed(3)} in ${tc.type}"><div class="ncbar" style="height:${NC_H[tc.tier]}%;background:${col}"></div></div>`;}});
-      for(let i=r.cells.length;i<8;i++)cells+=`<div class="nccell"><div class="ncnone"></div></div>`;
-    }
-    strips+=`<div class="ncrow"><div class="nchead"><span class="dot" style="background:${r.color}"></span><span class="nm">${r.name}</span>`+
+    const s=sums[r.id];const anyWet=r.cells.some(c=>nowcastTier(c).tier>0);
+    const head=`<div class="nchead"><span class="dot" style="background:${r.color}"></span><span class="nm">${r.name}</span>`+
       `<span class="tag" style="color:${r.native?C.gfs:C.muted}">${r.native?"native 15-min":"interpolated"}</span>`+
-      `<span class="onset">${esc(s.text)}</span></div><div class="ncbars">${cells}</div></div>`;});
+      `<span class="onset">${esc(s.text)}</span></div>`;
+    if(!anyWet){
+      // dry source: keep the honest label but skip the tall empty chart
+      strips+=`<div class="ncrow">${head}<div class="ncflat"><span>no measurable precip modeled</span><span class="base"></span></div></div>`;
+      return;}
+    anyWetRow=true;let cells="";
+    r.cells.forEach(c=>{const tc=nowcastTier(c);
+      if(tc.tier===0){cells+=`<div class="nccell"><div class="ncnone"></div></div>`;}
+      else{typesPresent.add(tc.type);const col=NC_COLOR[tc.type][tc.tier];
+        cells+=`<div class="nccell" title="${fmtTime(c.ms)} · ${(c.precip||0).toFixed(3)} in ${tc.type}"><div class="ncbar" style="height:${NC_H[tc.tier]}%;background:${col}"></div></div>`;}});
+    for(let i=r.cells.length;i<8;i++)cells+=`<div class="nccell"><div class="ncnone"></div></div>`;
+    strips+=`<div class="ncrow">${head}<div class="ncbars">${cells}</div></div>`;});
   const nwsLine=nwsProb!=null?`<div class="sub" style="margin-top:8px">NWS official: ${nwsProb}% chance of precip in the next 2h (no sub-hourly feed).</div>`:"";
   const obs=obsPrecipNow();
   const obsLine=obs&&obs.wet?`<div class="sub" style="margin:2px 0 8px"><b style="color:${C.nws}">Observed now at MSP:</b> ${esc(obs.text)}. The station shows active precip even where a model run underplays it.</div>`:"";
-  const legend=`<div class="nclegend">
-    <span class="sw"><i style="background:#8BC34A"></i>Rain</span>
-    <span class="sw"><i style="background:#4A90D9"></i>Snow</span>
-    <span class="sw"><i style="background:#8E5FC4"></i>Mix</span>
-    <span style="color:var(--line)">|</span><span>bar height = amount intensity · % = hourly chance</span></div>`;
+  // legend only when bars are on screen, and only the types actually shown
+  const TYPE_LBL={rain:"Rain",snow:"Snow",mix:"Mix"};
+  const legend=anyWetRow?`<div class="nclegend">`+
+    ["rain","snow","mix"].filter(t=>typesPresent.has(t)).map(t=>`<span class="sw"><i style="background:${NC_COLOR[t][1]}"></i>${TYPE_LBL[t]}</span>`).join("")+
+    `<span style="color:var(--line)">|</span><span>bar height = amount intensity · % = hourly chance</span></div>`:"";
+  const axis=anyWetRow?`<div class="ncaxis"><span>Now</span><span>+30m</span><span>+60m</span><span>+90m</span><span>+2h</span></div>`:"";
   el.innerHTML=`<div class="nchead-line"><span class="chip" style="background:${chipCol}">${chip}</span>`+
     `<span style="font-size:14px;font-weight:600">${esc(headline)}</span></div>`+
     obsLine+
     `<div>${strips}</div>`+
-    `<div class="ncaxis"><span>Now</span><span>+30m</span><span>+60m</span><span>+90m</span><span>+2h</span></div>`+
+    axis+
     nwsLine+legend+
     `<div class="note">Each row is the same 2-hour timeline in 15-minute steps. Only HRRR (NOAA's 1 km radar-fed model) is genuinely sub-hourly; ICON and ECMWF have no sub-hourly feed and are interpolated from their hourly forecasts, so they read smoother. These are model forecasts, not live radar: a stale or coarse run can show ~0 amount even while it's raining, which is why the Observed line anchors on the actual MSP station. The % is each source's hourly chance of precip. AccuWeather MinuteCast uses 1-minute resolution; see the Pirate Weather panel.</div>`;
 }
@@ -839,11 +860,11 @@ function renderPirate(){
   for(let i=cells.length;i<60;i++)spark+=`<i style="height:2%;opacity:.2"></i>`;
   const sparkBlock=`<div class="pwsublabel">Chance of precip${peakPct>0?` &mdash; peak ${peakPct}%`:""}</div><div class="pwspark">${spark}</div>`;
 
-  const legend=wetWindow?`<div class="nclegend">
-    <span class="sw"><i style="background:#8BC34A"></i>Rain</span>
-    <span class="sw"><i style="background:#4A90D9"></i>Snow</span>
-    <span class="sw"><i style="background:#8E5FC4"></i>Sleet</span>
-    <span style="color:var(--line)">|</span><span>bar height = how hard it's falling</span></div>`:"";
+  const pwTypes=new Set(cells.filter(p=>pwTier(p.intensity)>0).map(p=>pwType(p.type)));
+  const PW_LBL={rain:"Rain",snow:"Snow",mix:"Sleet"};
+  const legend=wetWindow?`<div class="nclegend">`+
+    ["rain","snow","mix"].filter(t=>pwTypes.has(t)).map(t=>`<span class="sw"><i style="background:${NC_COLOR[t][1]}"></i>${PW_LBL[t]}</span>`).join("")+
+    `<span style="color:var(--line)">|</span><span>bar height = how hard it's falling</span></div>`:"";
 
   const pwObsLine=pwObs&&pwObs.wet?`<div class="sub" style="margin:2px 0 6px"><b style="color:${C.nws}">Observed now at MSP:</b> ${esc(pwObs.text)}${!wetWindow?", but Pirate's minute model is reading dry and lagging the actual rain":""}.</div>`:"";
   el.innerHTML=`<div class="nchead-line"><span class="chip" style="background:${chipCol}">${chip}</span>`+
@@ -879,7 +900,7 @@ function render(){
   const n=ALL.filter(id=>state.sources[id].status==="ok").length;
   document.getElementById("updated").textContent=state.updatedAt?`Updated ${fmtTime(state.updatedAt)} · ${n}/5 sources`:"Loading sources…";
   renderLegend();renderToday();renderNowcast();renderPirate();renderNowSummary();renderSpread();renderGrid();
-  renderHourlyCharts();renderWeek();renderDaily();renderStatus();
+  renderHourlyCharts();renderWeek();renderStatus();
 }
 
 document.getElementById("refresh").addEventListener("click",loadAll);

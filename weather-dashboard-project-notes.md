@@ -88,11 +88,16 @@ Helpers: `cur(id)` = current conditions, `okd(id)` = full data when status ok.
 2. **Next 2 hours — precipitation nowcast** — per-source 15-min bars over a
    shared 2h timeline; only HRRR is native sub-hourly, the rest are interpolated
    and labeled as such. Anchored by an "Observed now at MSP" line when the
-   station reports active precip.
+   station reports active precip. A source modeling no measurable precip
+   renders as a compact one-line row (label + dotted baseline) instead of a
+   tall empty chart; the timeline axis and type legend only appear when at
+   least one source shows bars.
 3. **How much do the sources disagree?** — a plain-language headline + the "now"
    temperature/big-number summary, then spread strips and categorical rows.
-4. **Current conditions by source** — the full grid; bold red = highest / bold
-   blue = lowest among forecasts; `Cons.` column = median of the four.
+4. **Current conditions by source** — the full grid; units live in the row
+   label so value cells stay narrow on a phone; bold ▲ (red) = highest / bold
+   ▼ = lowest among forecasts; `Cons.` column = median of the four. The table
+   scrolls sideways on narrow screens with CSS scroll-shadow cues.
 5. **Next 24 hours** — temperature and precip-probability line charts with a
    min–max ribbon and a bold consensus (median) line.
 6. **7-day high temperature & uncertainty** — see below.
@@ -110,6 +115,15 @@ Helpers: `cur(id)` = current conditions, `okd(id)` = full data when status ok.
 `level(range, lo, hi)` buckets a numeric spread into `low` / `med` / `high`,
 mapped to labels ("High agreement" / "Some spread" / "High disagreement") and the
 green / amber / red palette. Thresholds are per-metric and intentionally tuned:
+
+The spread-strip *track* is threshold-anchored (`spreadTicks`): its full width
+always represents at least 1.5× the high-disagreement threshold, centered on
+the values' midpoint, so agreeing sources visibly cluster and only real
+disagreement spreads the beads out (previously min–max always stretched to
+full width, which made 0.01" of spread look like a split). Beads that would
+overlap drop to a lower "lane" on a short gray stem — same horizontal
+position means same value; this keeps sources with identical values visible
+instead of hiding behind one another.
 
 | metric                    | low < | med ≤ | unit |
 |---------------------------|-------|-------|------|
@@ -145,8 +159,12 @@ to read each day's high *and* its uncertainty at a glance on a phone:
   lowest–highest spread and the consensus median, with an "ensemble unavailable"
   note.
 
-Below the bars, the **per-day source squares** (T / P / W) show which specific
-sources agree on high temp, precip chance, and gusts (green / amber / red).
+Each day's row also carries, on a second line inside the same row, the
+**per-source high/low readouts** (NWS 88/68 · GFS 90/76 · …) and the
+**agreement squares** (T / P / W) showing which sources agree on high temp,
+precip chance, and gusts (green / amber / red). This used to be a separate
+per-day list below the bars; it was merged into one row per day so the reader
+doesn't cross-reference two lists with duplicate day labels.
 
 ## Design conventions
 
@@ -156,7 +174,10 @@ sources agree on high temp, precip chance, and gusts (green / amber / red).
 - **Mobile-first.** The user is almost always on an iPhone. Panels must stay
   scannable on a narrow screen; test at ~360px wide.
 - Charts are hand-built inline SVG (`chartSVG`) with a viewBox and
-  `preserveAspectRatio` so they scale fluidly — no chart library.
+  `preserveAspectRatio` so they scale fluidly — no chart library. The viewBox
+  is 360 wide (≈ a phone's CSS width) so 10px axis text renders at true size
+  on mobile instead of being scaled down; on wide screens the SVG is capped
+  at 560px via CSS so text doesn't balloon.
 - UI copy is honest about limits: label model vs observed, native vs
   interpolated, and don't overclaim precision.
 
