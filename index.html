@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minneapolis Weather Triangulation</title>
+<style>
+  :root{
+    --ink:#16242B; --bg:#EEF1F0; --panel:#FFFFFF; --line:#DCE2E0; --muted:#5C6B72;
+    --obs:#11181C; --nws:#1F6FB2; --gfs:#C9821F; --ecmwf:#2E8B7F; --icon:#7A5CC4;
+    --cons:#3A4A52; --good:#2F9E6E; --med:#D9982B; --bad:#D9583B;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 40px;}
+  h1{font-size:24px;line-height:1.1;margin:2px 0 0;}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;}
+  .eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--muted);}
+  .sub{font-size:12px;color:var(--muted);margin-top:4px;}
+  .panel{background:var(--panel);border-radius:12px;padding:16px;margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(0,0,0,.05);}
+  .panel.slim{padding:12px 16px;}
+  button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    border-radius:8px;padding:9px 14px;font-weight:500;cursor:pointer;}
+  button:disabled{opacity:.5;cursor:default;}
+  .row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;}
+  .legend span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .tag{font-size:9px;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:0 4px;}
+  .chip{display:inline-block;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.02em;color:#fff;}
+  /* now summary */
+  .nowsum{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;justify-content:space-between;
+    padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:4px;}
+  .nowsum .big{font-size:42px;font-weight:700;line-height:.95;}
+  .nowsum .bigsub{font-size:12px;color:var(--muted);margin-top:4px;}
+  .nowsum .cons{font-size:12px;margin-top:6px;}
+  .nowsum .read{flex:1 1 220px;font-size:13px;line-height:1.4;}
+  /* spread strips */
+  .srow{border-top:1px solid var(--line);padding:12px 0;}
+  .srow .head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+  .srow .lab{font-size:14px;font-weight:600;}
+  .track{position:relative;height:28px;margin:0 4px;}
+  .track .axis{position:absolute;left:0;right:0;top:12px;height:1px;background:var(--line);}
+  .tick{position:absolute;top:0;transform:translateX(-50%);}
+  .tick .stem{width:2px;height:14px;margin:0 auto;}
+  .tick .bead{width:10px;height:10px;border-radius:50%;border:2px solid;background:var(--panel);margin:0 auto;}
+  .ticklabels,.catitems{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;}
+  .ticklabels span,.catitems span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;
+    font-family:var(--mono);}
+  /* grid */
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px;}
+  th,td{padding:8px;text-align:right;white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);}
+  th{font-size:11px;font-weight:600;color:var(--muted);}
+  tbody tr{border-top:1px solid var(--line);}
+  .scroll{overflow-x:auto;}
+  .note{font-size:10px;color:var(--muted);margin-top:8px;}
+  .cap{font-size:10px;color:var(--muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;}
+  .cap b{font-weight:600;color:var(--ink);}
+  /* today */
+  .today{display:flex;flex-wrap:wrap;gap:10px 22px;}
+  .today .item{display:flex;flex-direction:column;}
+  .today .k{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);}
+  .today .v{font-size:15px;font-weight:600;font-family:var(--mono);}
+  /* daily */
+  .day{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;}
+  .day:first-of-type{border-top:none;}
+  .day .dname{width:50px;flex:0 0 auto;}
+  .day .dname .d{font-size:14px;font-weight:600;}
+  .day .dname .n{font-size:10px;color:var(--muted);}
+  .day .cells{flex:1;display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--mono);}
+  .day .cells span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .agg{display:flex;gap:3px;flex:0 0 auto;}
+  .agg b{width:18px;height:18px;border-radius:4px;color:#fff;font-size:9px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;}
+  .statusrow{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin:6px 0;}
+  .statusrow .s{font-family:var(--mono);}
+  .statusrow.aux{opacity:.8;}
+  .chart{width:100%;}
+  svg{display:block;width:100%;height:auto;}
+  /* nowcast */
+  .nchead-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;}
+  .ncrow{margin-top:12px;}
+  .nchead{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:5px;flex-wrap:wrap;}
+  .nchead .nm{font-weight:600;color:var(--ink);}
+  .nchead .onset{font-family:var(--mono);color:var(--muted);margin-left:auto;}
+  .ncbars{display:flex;align-items:flex-end;gap:3px;height:54px;border-bottom:2px solid var(--ink);
+    border-left:2px solid var(--ink);padding-left:3px;}
+  .nccell{flex:1;height:100%;display:flex;align-items:flex-end;justify-content:center;}
+  .ncbar{width:100%;border-radius:2px 2px 0 0;min-height:2px;}
+  .ncnone{width:100%;border-bottom:2px dotted var(--line);margin-bottom:1px;}
+  .ncaxis{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;
+    font-family:var(--mono);padding-left:3px;}
+  .nclegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:11px;color:var(--muted);align-items:center;}
+  .nclegend .sw{display:inline-flex;align-items:center;gap:4px;}
+  .nclegend i{width:10px;height:10px;border-radius:2px;display:inline-block;}
+  /* pirate weather */
+  .pwbars{display:flex;align-items:flex-end;gap:1px;height:60px;border-bottom:2px solid var(--ink);
+    border-left:2px solid var(--ink);padding-left:2px;}
+  .pwcell{flex:1;height:100%;display:flex;align-items:flex-end;}
+  .pwbar{width:100%;border-radius:1px 1px 0 0;min-height:1px;}
+  .pwprob{display:flex;gap:1px;height:8px;margin-top:3px;padding-left:2px;}
+  .pwprob i{flex:1;border-radius:1px;}
+  .pwsublabel{font-size:11px;color:var(--muted);margin:9px 0 3px;}
+  .pwdry{display:flex;align-items:center;gap:10px;height:34px;border-left:2px solid var(--ink);
+    border-bottom:2px solid var(--ink);padding-left:9px;color:var(--muted);font-size:13px;}
+  .pwdry .base{flex:1;border-bottom:2px dotted var(--line);}
+  .pwspark{display:flex;align-items:flex-end;gap:1px;height:30px;border-left:2px solid var(--line);
+    border-bottom:2px solid var(--line);padding-left:2px;}
+  .pwspark i{flex:1;background:#1F6FB2;border-radius:1px 1px 0 0;min-height:1px;opacity:.55;}
+  .pwkey{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0;}
+  .pwkey input{font:inherit;font-family:var(--mono);font-size:13px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 10px;flex:1 1 200px;min-width:0;color:var(--ink);}
+  .pwkey button{flex:0 0 auto;}
+  .pwlink{font-size:11px;color:var(--nws);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row">
+    <div>
+      <div class="eyebrow">Forecast triangulation</div>
+      <h1>Minneapolis, MN</h1>
+      <div class="sub" id="updated">Loading sources…</div>
+    </div>
+    <button id="refresh">Refresh</button>
+  </div>
+  <div class="legend" id="legend"></div>
+
+  <div class="panel slim">
+    <div class="today" id="today"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Next 2 hours &mdash; precipitation nowcast</h2>
+    <div id="nowcast"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Pirate Weather &mdash; minute by minute (next 60 min)</h2>
+    <div id="pirate"></div>
+  </div>
+
+  <div class="panel">
+    <h2>How much do the sources disagree?</h2>
+    <div id="nowsum"></div>
+    <div id="spread"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Current conditions by source</h2>
+    <div class="scroll"><table id="grid"></table></div>
+    <div class="note">Bold = highest (red) / lowest (blue) among forecasts. Cons. = median of the four forecasts. NWS forecast publishes no pressure/visibility; ECMWF omits some fields (n/a).</div>
+  </div>
+
+  <div class="panel">
+    <h2>Next 24 hours</h2>
+    <div class="sub" style="margin:-4px 0 4px;">Temperature (°F)</div>
+    <div class="chart" id="tempchart"></div>
+    <div class="cap" id="tempcap"></div>
+    <div class="sub" style="margin:12px 0 4px;">Precipitation probability (%)</div>
+    <div class="chart" id="precipchart"></div>
+    <div class="note">Shaded ribbon spans the lowest-to-highest forecast each hour; bold line is the consensus. ECMWF carries no precip probability.</div>
+  </div>
+
+  <div class="panel">
+    <h2>7-day high temperature &amp; uncertainty</h2>
+    <div class="chart" id="weekchart"></div>
+    <div class="cap" id="weekcap"></div>
+    <div style="margin-top:12px" id="daily"></div>
+    <div class="note">Per-day squares show source agreement: T = high temp, P = precip chance, W = wind gusts. Green agree · amber some spread · red split.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Source status</h2>
+    <div id="status"></div>
+    <div class="note">Data: NWS (api.weather.gov) and Open-Meteo (CC BY 4.0). No API keys; fetched live in your browser.</div>
+  </div>
+</div>
+
+<script>
+/* ===================== config ===================== */
+const LAT=44.9778, LON=-93.265, TZ="America/Chicago";
+const C={ink:"#16242B",panel:"#FFFFFF",line:"#DCE2E0",muted:"#5C6B72",
+  obs:"#11181C",nws:"#1F6FB2",gfs:"#C9821F",ecmwf:"#2E8B7F",icon:"#7A5CC4",
+  cons:"#3A4A52",good:"#2F9E6E",med:"#D9982B",bad:"#D9583B"};
+const META={
+  obs:{id:"obs",name:"MSP Actual",short:"Actual",color:C.obs,type:"observation"},
+  nws:{id:"nws",name:"NWS Official",short:"NWS",color:C.nws,type:"official"},
+  gfs:{id:"gfs",name:"GFS (NOAA)",short:"GFS",color:C.gfs,type:"model"},
+  ecmwf:{id:"ecmwf",name:"ECMWF",short:"ECMWF",color:C.ecmwf,type:"model"},
+  icon:{id:"icon",name:"ICON (DWD)",short:"ICON",color:C.icon,type:"model"},
+};
+const ALL=["obs","nws","gfs","ecmwf","icon"];
+const FC=["nws","gfs","ecmwf","icon"];
+const NOW_SRC=[
+  {id:"hrrr",model:"gfs_seamless",name:"HRRR (NOAA)",note:"radar-fed",color:C.gfs,native:true},
+  {id:"nicon",model:"icon_seamless",name:"ICON",note:"interpolated",color:C.icon,native:false},
+  {id:"necmwf",model:"ecmwf_ifs025",name:"ECMWF",note:"interpolated",color:C.ecmwf,native:false},
+];
+
+/* ===================== helpers ===================== */
+const cToF=c=>c==null?null:c*9/5+32;
+const kmhToMph=k=>k==null?null:k*0.621371;
+const paToInHg=p=>p==null?null:p*0.00029530;
+const hpaToInHg=h=>h==null?null:h*0.02953;
+const mToMi=m=>m==null?null:m/1609.34;
+const cmToIn=c=>c==null?null:c/2.54;
+const epochHour=ms=>Math.floor(ms/3600000);
+function compass(d){if(d==null)return null;const a=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];return a[Math.round(d/22.5)%16];}
+function dewFromTempRH(tF,rh){if(tF==null||rh==null||rh<=0)return null;const tc=(tF-32)*5/9,a=17.625,b=243.04;const g=Math.log(rh/100)+a*tc/(b+tc);return cToF(b*g/(a-g));}
+function pctl(arr,p){if(!arr||!arr.length)return null;const s=[...arr].sort((a,b)=>a-b);const idx=(s.length-1)*p,lo=Math.floor(idx),hi=Math.ceil(idx);if(lo===hi)return s[lo];return s[lo]+(s[hi]-s[lo])*(idx-lo);}
+const median=a=>pctl(a,0.5);
+function joinList(a){if(a.length<=1)return a.join("");if(a.length===2)return a[0]+" and "+a[1];return a.slice(0,-1).join(", ")+", and "+a[a.length-1];}
+const WMO={0:"Clear",1:"Mainly clear",2:"Partly cloudy",3:"Overcast",45:"Fog",48:"Rime fog",51:"Light drizzle",53:"Drizzle",55:"Dense drizzle",56:"Freezing drizzle",57:"Freezing drizzle",61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow grains",80:"Light showers",81:"Showers",82:"Heavy showers",85:"Snow showers",86:"Heavy snow showers",95:"Thunderstorm",96:"Thunderstorm + hail",99:"Thunderstorm + hail"};
+function deriveConditions(code,precip,cloud){if(code!=null&&WMO[code])return WMO[code];if(precip!=null&&precip>0)return"Precipitation";if(cloud!=null){if(cloud>80)return"Overcast";if(cloud>40)return"Partly cloudy";return"Clear";}return null;}
+const I=o=>new Intl.DateTimeFormat("en-US",{timeZone:TZ,...o});
+const fmtHour=ms=>I({hour:"numeric"}).format(new Date(ms));
+const fmtDay=ms=>I({weekday:"short"}).format(new Date(ms));
+const fmtDateNum=ms=>I({month:"numeric",day:"numeric"}).format(new Date(ms));
+const fmtTime=ms=>I({hour:"numeric",minute:"2-digit"}).format(new Date(ms));
+const dateKey=ms=>new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ms));
+function esc(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+
+/* ===================== fetchers ===================== */
+async function fetchOpenMeteo(model){
+  const p=new URLSearchParams({latitude:LAT,longitude:LON,timezone:TZ,timeformat:"unixtime",
+    temperature_unit:"fahrenheit",wind_speed_unit:"mph",precipitation_unit:"inch",forecast_days:"7",models:model,
+    current:"temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,cloud_cover,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation",
+    hourly:"temperature_2m,relative_humidity_2m,dew_point_2m,precipitation_probability,precipitation,snowfall,weather_code,visibility,wind_gusts_10m",
+    daily:"weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,snowfall_sum,precipitation_probability_max,wind_gusts_10m_max,sunrise,sunset,uv_index_max"});
+  const r=await fetch("https://api.open-meteo.com/v1/forecast?"+p);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();
+  const cur=j.current||{},H=j.hourly||{};
+  const nowH=epochHour(Date.now());
+  let ci=H.time?H.time.findIndex(t=>epochHour(t*1000)===nowH):-1;
+  if(ci<0&&H.time)ci=0;
+  const vis=ci>=0&&H.visibility?H.visibility[ci]:null;
+  let dp=ci>=0&&H.dew_point_2m?H.dew_point_2m[ci]:null;
+  if(dp==null)dp=dewFromTempRH(cur.temperature_2m,cur.relative_humidity_2m);
+  const current={temp:cur.temperature_2m??null,feelsLike:cur.apparent_temperature??null,
+    conditions:deriveConditions(cur.weather_code,cur.precipitation,cur.cloud_cover),
+    windSpeed:cur.wind_speed_10m??null,windGust:cur.wind_gusts_10m??null,windDir:cur.wind_direction_10m??null,
+    humidity:cur.relative_humidity_2m??null,dewPoint:dp,pressure:hpaToInHg(cur.pressure_msl),
+    visibility:vis!=null?vis/1609.34:null,time:cur.time?cur.time*1000:Date.now()};
+  const hourly=(H.time||[]).map((t,i)=>({ms:t*1000,eh:epochHour(t*1000),
+    temp:H.temperature_2m?.[i]??null,precipProb:H.precipitation_probability?.[i]??null,
+    precip:H.precipitation?.[i]??null,snow:H.snowfall?.[i]??null,gust:H.wind_gusts_10m?.[i]??null}));
+  const D=j.daily||{};
+  const daily=(D.time||[]).map((t,i)=>({ms:t*1000,key:dateKey(t*1000),
+    tMax:D.temperature_2m_max?.[i]??null,tMin:D.temperature_2m_min?.[i]??null,
+    precipProbMax:D.precipitation_probability_max?.[i]??null,precipSum:D.precipitation_sum?.[i]??null,
+    gustMax:D.wind_gusts_10m_max?.[i]??null,snowSum:cmToIn(D.snowfall_sum?.[i]),
+    sunrise:D.sunrise?.[i]?D.sunrise[i]*1000:null,sunset:D.sunset?.[i]?D.sunset[i]*1000:null,
+    uvMax:D.uv_index_max?.[i]??null,conditions:WMO[D.weather_code?.[i]]??null}));
+  return {current,hourly,daily};
+}
+function parseWind(s){if(s==null)return null;const m=String(s).match(/(\d+)/);return m?parseInt(m[1],10):null;}
+async function fetchNWS(){
+  const pr=await fetch("https://api.weather.gov/points/"+LAT+","+LON);
+  if(!pr.ok)throw new Error("points HTTP "+pr.status);
+  const pj=await pr.json();
+  const [hr,dr]=await Promise.all([fetch(pj.properties.forecastHourly),fetch(pj.properties.forecast)]);
+  if(!hr.ok)throw new Error("hourly HTTP "+hr.status);
+  const periods=(await hr.json()).properties.periods||[];
+  const hourly=periods.map(p=>{const ms=new Date(p.startTime).getTime();
+    return {ms,eh:epochHour(ms),temp:p.temperature??null,precipProb:p.probabilityOfPrecipitation?.value??null,
+      precip:null,snow:null,gust:parseWind(p.windGust)??parseWind(p.windSpeed)};});
+  const f=periods[0]||{};
+  const current={temp:f.temperature??null,feelsLike:null,conditions:f.shortForecast??null,
+    windSpeed:parseWind(f.windSpeed),windGust:parseWind(f.windGust),windDir:null,
+    humidity:f.relativeHumidity?.value??null,dewPoint:f.dewpoint?.value!=null?cToF(f.dewpoint.value):null,
+    pressure:null,visibility:null,time:f.startTime?new Date(f.startTime).getTime():Date.now()};
+  const daily=[];
+  if(dr.ok){const dps=(await dr.json()).properties.periods||[];const by={};
+    dps.forEach(p=>{const ms=new Date(p.startTime).getTime(),k=dateKey(ms);
+      if(!by[k])by[k]={ms,key:k,tMax:null,tMin:null,precipProbMax:null,gustMax:parseWind(p.windGust),conditions:null};
+      const pop=p.probabilityOfPrecipitation?.value;if(pop!=null)by[k].precipProbMax=Math.max(by[k].precipProbMax??0,pop);
+      const g=parseWind(p.windGust)??parseWind(p.windSpeed);if(g!=null)by[k].gustMax=Math.max(by[k].gustMax??0,g);
+      if(p.isDaytime){by[k].tMax=p.temperature??by[k].tMax;by[k].conditions=p.shortForecast??by[k].conditions;}
+      else{by[k].tMin=p.temperature??by[k].tMin;if(!by[k].conditions)by[k].conditions=p.shortForecast??null;}});
+    Object.values(by).sort((a,b)=>a.ms-b.ms).forEach(d=>daily.push({...d,precipSum:null,snowSum:null}));}
+  return {current,hourly,daily};
+}
+async function fetchObs(){
+  const r=await fetch("https://api.weather.gov/stations/KMSP/observations/latest");
+  if(!r.ok)throw new Error("obs HTTP "+r.status);
+  const p=(await r.json()).properties||{};
+  let feels=null;
+  if(p.heatIndex?.value!=null)feels=cToF(p.heatIndex.value);
+  else if(p.windChill?.value!=null)feels=cToF(p.windChill.value);
+  const current={temp:cToF(p.temperature?.value),feelsLike:feels,conditions:p.textDescription||null,
+    windSpeed:kmhToMph(p.windSpeed?.value),windGust:kmhToMph(p.windGust?.value),windDir:p.windDirection?.value??null,
+    humidity:p.relativeHumidity?.value??null,dewPoint:cToF(p.dewpoint?.value),
+    pressure:paToInHg(p.seaLevelPressure?.value??p.barometricPressure?.value),
+    visibility:mToMi(p.visibility?.value),time:p.timestamp?new Date(p.timestamp).getTime():Date.now()};
+  return {current,hourly:[],daily:[]};
+}
+async function fetchEnsemble(){
+  const p=new URLSearchParams({latitude:LAT,longitude:LON,timezone:TZ,timeformat:"unixtime",
+    temperature_unit:"fahrenheit",forecast_days:"7",models:"gfs_seamless",hourly:"temperature_2m"});
+  const r=await fetch("https://ensemble-api.open-meteo.com/v1/ensemble?"+p);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();const H=j.hourly||{};
+  const keys=Object.keys(H).filter(k=>k.startsWith("temperature_2m"));
+  if(!keys.length||!H.time)throw new Error("no members");
+  const byDay={};
+  H.time.forEach((t,i)=>{const k=dateKey(t*1000);if(!byDay[k])byDay[k]={ms:t*1000,idx:[]};byDay[k].idx.push(i);});
+  const daily=Object.entries(byDay).map(([k,v])=>{
+    const memberMax=keys.map(mk=>{let mx=-Infinity;v.idx.forEach(i=>{const val=H[mk][i];if(typeof val==="number"&&val>mx)mx=val;});return mx;}).filter(x=>isFinite(x));
+    return {key:k,ms:v.ms,p10:pctl(memberMax,0.1),p50:pctl(memberMax,0.5),p90:pctl(memberMax,0.9),members:keys.length};
+  }).sort((a,b)=>a.ms-b.ms);
+  return {daily,members:keys.length};
+}
+async function fetchAir(){
+  const p=new URLSearchParams({latitude:LAT,longitude:LON,timezone:TZ,timeformat:"unixtime",current:"us_aqi,pm2_5"});
+  const r=await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?"+p);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();const c=j.current||{};
+  return {aqi:c.us_aqi??null,pm25:c.pm2_5??null,time:c.time?c.time*1000:Date.now()};
+}
+async function fetchMinutely(model){
+  const p=new URLSearchParams({latitude:LAT,longitude:LON,timezone:TZ,timeformat:"unixtime",
+    precipitation_unit:"inch",forecast_days:"1",forecast_minutely_15:"8",models:model,minutely_15:"precipitation,rain,snowfall"});
+  const r=await fetch("https://api.open-meteo.com/v1/forecast?"+p);
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();const M=j.minutely_15||{};
+  if(!M.time)throw new Error("no minutely data");
+  const minutely=M.time.map((t,i)=>({ms:t*1000,precip:M.precipitation?.[i]??null,rain:M.rain?.[i]??null,snow:M.snowfall?.[i]??null}));
+  return {minutely};
+}
+let PW_MEM_KEY="";
+function getPwKey(){
+  try{const k=localStorage.getItem("pw_api_key");if(k)return k;}catch(e){}
+  return PW_MEM_KEY||"";
+}
+function setPwKey(k){
+  PW_MEM_KEY=k||"";
+  try{if(k)localStorage.setItem("pw_api_key",k);else localStorage.removeItem("pw_api_key");}catch(e){}
+}
+async function fetchPirate(key){
+  const url=`https://api.pirateweather.net/forecast/${encodeURIComponent(key)}/${LAT},${LON}?units=us&exclude=hourly,daily,alerts`;
+  const r=await fetch(url);
+  if(r.status===401||r.status===403)throw new Error("key rejected");
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const j=await r.json();
+  const m=(j.minutely&&j.minutely.data)||[];
+  const minutely=m.map(p=>({ms:p.time*1000,intensity:p.precipIntensity??0,prob:p.precipProbability??null,type:p.precipType||null}));
+  return {summary:(j.minutely&&j.minutely.summary)||null,currently:j.currently||null,minutely};
+}
+
+/* ===================== spread logic ===================== */
+function level(r,lo,hi){if(r==null)return null;if(r<lo)return"low";if(r<=hi)return"med";return"high";}
+const LBL={low:"High agreement",med:"Some spread",high:"High disagreement"};
+const LCOL={low:C.good,med:C.med,high:C.bad};
+function futureH(hourly,n){if(!hourly||!hourly.length)return[];const now=Date.now();return hourly.filter(h=>h.ms>=now-1800000).slice(0,n);}
+function maxProbNext(hourly,n){const f=futureH(hourly,n);const v=f.map(h=>h.precipProb).filter(x=>x!=null);return v.length?Math.max(...v):null;}
+function nextOnset(hourly){for(const h of futureH(hourly,48)){if((h.precipProb!=null&&h.precipProb>=50)||(h.precip!=null&&h.precip>=0.01))return h.ms;}return null;}
+function expects24(hourly){const f=futureH(hourly,24);if(!f.length)return null;return f.some(h=>(h.precipProb!=null&&h.precipProb>=50)||(h.precip!=null&&h.precip>=0.01));}
+function precipTotal24(hourly){const f=futureH(hourly,24);if(!f.length||f.every(h=>h.precip==null))return null;return f.reduce((s,h)=>s+(h.precip||0),0);}
+function ptype24(src){const f=futureH(src?.hourly,24);if(!f.length)return null;let snow=0,rain=0,saw=false;
+  f.forEach(h=>{if(h.snow!=null||h.precip!=null)saw=true;if(h.snow!=null&&h.snow>0)snow+=h.snow;
+    const liq=h.precip??0;if(liq>0&&(h.snow==null||h.snow===0))rain+=liq;});
+  if(!saw)return null;if(snow>0&&rain>0)return"mixed";if(snow>0)return"snow";if(rain>0)return"rain";return"none";}
+
+/* ===================== state ===================== */
+const state={sources:{},ensemble:{status:"loading"},air:{status:"loading"},now:{},pw:{status:"nokey"}};
+ALL.forEach(id=>state.sources[id]={status:"loading",data:null,error:null});
+NOW_SRC.forEach(s=>state.now[s.id]={status:"loading"});
+const cur=id=>state.sources[id]?.data?.current;
+const okd=id=>state.sources[id]?.status==="ok"?state.sources[id].data:null;
+
+async function loadAll(){
+  const btn=document.getElementById("refresh");btn.disabled=true;btn.textContent="Refreshing…";
+  ALL.forEach(id=>state.sources[id].status="loading");
+  state.ensemble={status:"loading"};state.air={status:"loading"};
+  NOW_SRC.forEach(s=>state.now[s.id]={status:"loading"});
+  render();
+  const jobs={obs:fetchObs(),nws:fetchNWS(),gfs:fetchOpenMeteo("gfs_seamless"),
+    ecmwf:fetchOpenMeteo("ecmwf_ifs025"),icon:fetchOpenMeteo("icon_seamless")};
+  const res=await Promise.allSettled(ALL.map(id=>jobs[id]));
+  ALL.forEach((id,i)=>{const r=res[i];
+    state.sources[id]=r.status==="fulfilled"?{status:"ok",data:r.value,error:null}
+      :{status:"error",data:null,error:(r.reason&&r.reason.message)||"failed"};});
+  const [ens,air]=await Promise.allSettled([fetchEnsemble(),fetchAir()]);
+  state.ensemble=ens.status==="fulfilled"?{status:"ok",data:ens.value}:{status:"error",error:(ens.reason&&ens.reason.message)||"failed"};
+  state.air=air.status==="fulfilled"?{status:"ok",data:air.value}:{status:"error",error:(air.reason&&air.reason.message)||"failed"};
+  const nres=await Promise.allSettled(NOW_SRC.map(s=>fetchMinutely(s.model)));
+  NOW_SRC.forEach((s,i)=>{const r=nres[i];
+    state.now[s.id]=r.status==="fulfilled"?{status:"ok",data:r.value}:{status:"error",error:(r.reason&&r.reason.message)||"failed"};});
+  const pwKey=getPwKey();
+  if(pwKey){
+    state.pw={status:"loading"};render();
+    try{state.pw={status:"ok",data:await fetchPirate(pwKey)};}
+    catch(e){state.pw={status:"error",error:e.message||"failed"};}
+  }else{state.pw={status:"nokey"};}
+  state.updatedAt=Date.now();
+  btn.disabled=false;btn.textContent="Refresh";
+  render();
+}
+
+/* ===================== chart ===================== */
+function chartSVG(data,series,opts){
+  opts=opts||{};
+  const W=720,H=opts.height||220,pl=34,pr=10,pt=10,pb=22,iw=W-pl-pr,ih=H-pt-pb;
+  let vals=[];
+  series.forEach(s=>data.forEach(d=>{if(typeof d[s.id]==="number")vals.push(d[s.id]);}));
+  if(opts.band)data.forEach(d=>{if(typeof d[opts.band.loKey]==="number")vals.push(d[opts.band.loKey]);if(typeof d[opts.band.hiKey]==="number")vals.push(d[opts.band.hiKey]);});
+  let yMin=opts.yMin!=null?opts.yMin:(vals.length?Math.min(...vals):0);
+  let yMax=opts.yMax!=null?opts.yMax:(vals.length?Math.max(...vals):1);
+  if(yMin===yMax){yMin-=1;yMax+=1;}
+  if(opts.yMin==null&&opts.yMax==null){const pad=(yMax-yMin)*0.12||1;yMin-=pad;yMax+=pad;}
+  const n=data.length;
+  const x=i=>pl+(n<=1?iw/2:i/(n-1)*iw);
+  const y=v=>pt+ih-(v-yMin)/(yMax-yMin)*ih;
+  let g="";
+  for(let t=0;t<=4;t++){const v=yMin+(yMax-yMin)*t/4,yy=y(v);
+    g+=`<line x1="${pl}" y1="${yy.toFixed(1)}" x2="${W-pr}" y2="${yy.toFixed(1)}" stroke="${C.line}"/>`;
+    g+=`<text x="${pl-4}" y="${(yy+3).toFixed(1)}" font-size="10" fill="${C.muted}" text-anchor="end" font-family="ui-monospace,monospace">${opts.yFmt?opts.yFmt(v):Math.round(v)}</text>`;}
+  let xl="";data.forEach((d,i)=>{if(i%(opts.xEvery||4)===0)xl+=`<text x="${x(i).toFixed(1)}" y="${H-6}" font-size="10" fill="${C.muted}" text-anchor="middle">${d.label}</text>`;});
+  let band="";
+  if(opts.band){const top=[],bot=[];data.forEach((d,i)=>{const lo=d[opts.band.loKey],hi=d[opts.band.hiKey];
+      if(typeof lo==="number"&&typeof hi==="number"){top.push(`${x(i).toFixed(1)},${y(hi).toFixed(1)}`);bot.unshift(`${x(i).toFixed(1)},${y(lo).toFixed(1)}`);}});
+    if(top.length>1)band=`<polygon points="${top.concat(bot).join(" ")}" fill="${opts.band.color}" stroke="none"/>`;}
+  let lines="";
+  series.forEach(s=>{
+    if(s.dots){data.forEach((d,i)=>{const v=d[s.id];if(typeof v==="number")lines+=`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.6" fill="${s.color}"/>`;});return;}
+    let seg=[],segs=[];data.forEach((d,i)=>{const v=d[s.id];if(typeof v==="number")seg.push(`${x(i).toFixed(1)},${y(v).toFixed(1)}`);else{if(seg.length>1)segs.push(seg.join(" "));seg=[];}});
+    if(seg.length>1)segs.push(seg.join(" "));
+    segs.forEach(pts=>{lines+=`<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="${s.width||2}" ${s.dash?`stroke-dasharray="${s.dash}"`:""} stroke-linejoin="round" stroke-linecap="round"/>`;});});
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">${g}${band}${lines}${xl}</svg>`;
+}
+
+/* ===================== render: pieces ===================== */
+function renderLegend(){
+  document.getElementById("legend").innerHTML=ALL.map(id=>{
+    const t=META[id].type,lab=t==="observation"?"actual":t==="official"?"official":"model";
+    const col=t==="observation"?C.obs:t==="official"?C.nws:C.muted;
+    return `<span><span class="dot" style="background:${META[id].color}"></span>${META[id].name}<span class="tag" style="color:${col}">${lab}</span></span>`;}).join("");
+}
+
+function aqiCat(a){if(a==null)return{l:"—",c:C.muted};if(a<=50)return{l:"Good",c:"#2F9E6E"};if(a<=100)return{l:"Moderate",c:"#C9A227"};if(a<=150)return{l:"Unhealthy (sensitive)",c:"#E0792B"};if(a<=200)return{l:"Unhealthy",c:"#D9583B"};if(a<=300)return{l:"Very unhealthy",c:"#8E4FB0"};return{l:"Hazardous",c:"#7E3B3B"};}
+function renderToday(){
+  const g=okd("gfs");const tk=dateKey(Date.now());
+  const d=g?.daily?.find(x=>x.key===tk)||g?.daily?.[0];
+  const air=state.air?.status==="ok"?state.air.data:null;
+  const ac=aqiCat(air?.aqi);
+  const items=[
+    {k:"Sunrise",v:d?.sunrise?fmtTime(d.sunrise):"—"},
+    {k:"Sunset",v:d?.sunset?fmtTime(d.sunset):"—"},
+    {k:"UV index (max)",v:d?.uvMax!=null?Math.round(d.uvMax):"—"},
+    {k:"Air quality (US AQI)",v:air?.aqi!=null?`${Math.round(air.aqi)} `:"—",extra:air?.aqi!=null?`<span style="color:${ac.c};font-size:11px">${ac.l}</span>`:""},
+  ];
+  document.getElementById("today").innerHTML=items.map(it=>`<div class="item"><span class="k">${it.k}</span><span class="v">${it.v}${it.extra||""}</span></div>`).join("");
+}
+
+function renderNowSummary(){
+  const obs=okd("obs")?.current;
+  const fcT=FC.map(id=>cur(id)?.temp).filter(v=>typeof v==="number");
+  const consT=fcT.length?median(fcT):null;
+  const range=fcT.length?Math.max(...fcT)-Math.min(...fcT):null;
+  const tlvl=level(range,3,6);
+  const pts=[];
+  if(tlvl==="high")pts.push(`temperature (${Math.round(range)}°F apart right now)`);
+  const pv=FC.map(id=>expects24(okd(id)?.hourly)).filter(v=>v!=null);
+  if(pv.some(x=>x)&&pv.some(x=>!x))pts.push("whether precipitation falls in the next 24h");
+  const tv=FC.map(id=>ptype24(okd(id))).filter(t=>t!=null&&t!=="none");
+  if(new Set(tv).size>1)pts.push("rain vs snow");
+  const ov=FC.map(id=>nextOnset(okd(id)?.hourly)).filter(m=>m!=null);
+  if(ov.length&&(Math.max(...ov)-Math.min(...ov))/3600000>=3)pts.push("the timing of the next precipitation");
+  const headline=pts.length?`Sources disagree on ${joinList(pts)}.`:"Sources are in broad agreement for the next 24 hours.";
+
+  let bigV="—",bigSub="",consLine="";
+  if(obs&&obs.temp!=null){
+    bigV=Math.round(obs.temp)+"°";
+    const bits=[];if(obs.conditions)bits.push(obs.conditions);if(obs.feelsLike!=null)bits.push("feels "+Math.round(obs.feelsLike)+"°");
+    bigSub="Now at MSP airport (measured)"+(bits.length?" · "+bits.join(" · "):"");
+  }else if(consT!=null){bigV=Math.round(consT)+"°";bigSub="Forecast consensus (no live observation)";}
+  if(consT!=null&&range!=null){
+    consLine=`<span class="chip" style="background:${LCOL[tlvl]};margin-right:6px">${LBL[tlvl]}</span>`+
+      `Forecast nowcast consensus <b>${Math.round(consT)}°</b> · sources ${range.toFixed(0)}°F apart`+
+      (obs&&obs.temp!=null?` · actual is ${Math.abs(Math.round(obs.temp-consT))}° ${obs.temp>=consT?"above":"below"} consensus`:"");
+  }
+  document.getElementById("nowsum").innerHTML=
+    `<div class="nowsum"><div><div class="big">${bigV}</div><div class="bigsub">${esc(bigSub)}</div>`+
+    `<div class="cons">${consLine}</div></div><div class="read">${esc(headline)}</div></div>`;
+}
+
+function spreadStrip(label,unit,entries,lo,hi,dec,note){
+  dec=dec||0;
+  const vals=entries.filter(e=>e.value!=null);
+  if(!vals.length)return `<div class="srow"><div class="head"><span class="lab">${label}</span><span class="sub">no data</span></div></div>`;
+  const nums=vals.map(e=>e.value),mn=Math.min(...nums),mx=Math.max(...nums),range=mx-mn,span=range||1,lvl=level(range,lo,hi);
+  let ticks="",labs="";
+  vals.forEach(e=>{const pct=(e.value-mn)/span*100;
+    ticks+=`<div class="tick" style="left:${pct}%"><div class="stem" style="background:${e.color}"></div><div class="bead" style="border-color:${e.color}"></div></div>`;
+    labs+=`<span><span class="dot" style="background:${e.color}"></span>${e.short} ${e.value.toFixed(dec)}${unit}</span>`;});
+  return `<div class="srow"><div class="head"><span class="lab">${label}</span>
+    <span class="chip" style="background:${LCOL[lvl]}">${LBL[lvl]} · ${range.toFixed(dec)}${unit}</span></div>
+    <div class="track"><div class="axis"></div>${ticks}</div><div class="ticklabels">${labs}</div>
+    ${note?`<div class="note">${note}</div>`:""}</div>`;
+}
+function catRow(label,verdict,color,items){
+  const it=items.map(i=>`<span><span class="dot" style="background:${i.color}"></span>${i.short}: ${esc(i.text)}</span>`).join("");
+  return `<div class="srow"><div class="head"><span class="lab">${label}</span>
+    <span class="chip" style="background:${color}">${esc(verdict)}</span></div><div class="catitems">${it}</div></div>`;
+}
+function renderSpread(){
+  const ent=f=>FC.map(id=>({...META[id],value:cur(id)?.[f]??null}));
+  let html=spreadStrip("Temperature (now)","°F",ent("temp"),3,6);
+  html+=spreadStrip("Wind gusts (now)"," mph",ent("windGust"),8,15);
+  const ptot=FC.map(id=>({...META[id],value:precipTotal24(okd(id)?.hourly)}));
+  html+=spreadStrip("Precip total, next 24h",'"',ptot,0.05,0.2,2,"Model precipitation only; NWS forecast carries no amount.");
+
+  const pv=FC.map(id=>({...META[id],yes:expects24(okd(id)?.hourly)})).filter(e=>e.yes!=null);
+  const anyY=pv.some(e=>e.yes),anyN=pv.some(e=>!e.yes);
+  html+=catRow("Precipitation next 24h",pv.length===0?"no data":(anyY&&anyN)?"Disagreement":anyY?"All expect precip":"All expect dry",
+    pv.length===0?C.muted:(anyY&&anyN)?C.bad:C.good,pv.map(e=>({...e,text:e.yes?"precip":"dry"})));
+  const tv=FC.map(id=>({...META[id],t:ptype24(okd(id))})).filter(e=>e.t!=null);
+  const types=new Set(tv.map(e=>e.t).filter(t=>t!=="none"));
+  html+=catRow("Snow vs rain (24h)",tv.length===0?"no data":types.size>1?"Type disagreement":"Type agrees",
+    tv.length===0?C.muted:types.size>1?C.bad:C.good,tv.map(e=>({...e,text:e.t})));
+  const ov=FC.map(id=>({...META[id],ms:nextOnset(okd(id)?.hourly)}));
+  const ons=ov.filter(e=>e.ms!=null).map(e=>e.ms);
+  let v="No precip in 48h",col=C.good;
+  if(ons.length){const sh=(Math.max(...ons)-Math.min(...ons))/3600000,all=ov.every(e=>e.ms!=null);
+    if(!all){v="Sources split on whether";col=C.bad;}else if(sh>=3){v="Onset differs ~"+sh.toFixed(0)+"h";col=sh>=6?C.bad:C.med;}else{v="Onset agrees";col=C.good;}}
+  html+=catRow("Next precipitation onset",v,col,ov.map(e=>({...e,text:e.ms?fmtDay(e.ms)+" "+fmtHour(e.ms):"none/48h"})));
+  document.getElementById("spread").innerHTML=html;
+}
+
+function renderGrid(){
+  const V=[
+    {k:"temp",l:"Temp",u:"°F",f:v=>Math.round(v)},
+    {k:"feelsLike",l:"Feels like",u:"°F",f:v=>Math.round(v)},
+    {k:"conditions",l:"Conditions",u:"",f:v=>v,t:1},
+    {k:"windSpeed",l:"Wind",u:" mph",f:v=>Math.round(v)},
+    {k:"windGust",l:"Gusts",u:" mph",f:v=>Math.round(v)},
+    {k:"windDir",l:"Wind dir",u:"",f:v=>compass(v)||Math.round(v)+"°",t:1},
+    {k:"humidity",l:"Humidity",u:"%",f:v=>Math.round(v)},
+    {k:"dewPoint",l:"Dew point",u:"°F",f:v=>Math.round(v)},
+    {k:"pressure",l:"Pressure",u:" inHg",f:v=>v.toFixed(2)},
+    {k:"visibility",l:"Visibility",u:" mi",f:v=>v.toFixed(1)},
+  ];
+  let head="<thead><tr><th>Variable</th>"+ALL.map(id=>`<th style="color:${META[id].color}">${META[id].short}</th>`).join("")+
+    `<th style="color:${C.cons}">Cons.</th></tr></thead>`;
+  let body="<tbody>";
+  V.forEach(v=>{
+    const nums=FC.map(id=>cur(id)?.[v.k]).filter(x=>typeof x==="number");
+    const mn=!v.t&&nums.length?Math.min(...nums):null,mx=!v.t&&nums.length?Math.max(...nums):null;
+    body+="<tr><td>"+v.l+"</td>";
+    ALL.forEach(id=>{const st=state.sources[id];let txt="·",col=C.ink,w="normal";
+      if(st.status==="loading")txt="…";
+      else if(st.status==="error"){txt="—";col=C.muted;}
+      else{const val=cur(id)?.[v.k];
+        if(val==null||val==="")  {txt="n/a";col=C.muted;}
+        else{txt=v.f(val)+v.u;
+          if(!v.t&&typeof val==="number"&&nums.length>1){if(val===mx&&mx!==mn){w="bold";col=C.bad;}else if(val===mn&&mx!==mn){w="bold";col=C.nws;}}}}
+      body+=`<td style="color:${col};font-weight:${w}">${esc(txt)}</td>`;});
+    // consensus cell
+    let cc="—";
+    if(!v.t&&nums.length){cc=v.f(median(nums))+v.u;}
+    body+=`<td style="background:#F4F6F5;color:${C.cons};font-weight:600">${esc(cc)}</td>`;
+    body+="</tr>";});
+  body+="<tr><td>Updated</td>"+ALL.map(id=>`<td style="color:${C.muted};font-size:10px">${cur(id)?.time?fmtTime(cur(id).time):"—"}</td>`).join("")+`<td style="background:#F4F6F5"></td></tr>`;
+  body+="</tbody>";
+  document.getElementById("grid").innerHTML=head+body;
+}
+
+function alignSlots(){const nowEH=epochHour(Date.now());return Array.from({length:24},(_,i)=>nowEH+1+i);}
+function hourlyMaps(){const m={};FC.forEach(id=>{const x={};(okd(id)?.hourly||[]).forEach(h=>x[h.eh]=h);m[id]=x;});return m;}
+function renderHourlyCharts(){
+  const slots=alignSlots(),maps=hourlyMaps();
+  const tdata=slots.map(eh=>{const row={label:fmtHour(eh*3600000)},vs=[];
+    FC.forEach(id=>{const h=maps[id][eh];if(h&&h.temp!=null){row[id]=Math.round(h.temp);vs.push(h.temp);}});
+    if(vs.length){row.lo=Math.min(...vs);row.hi=Math.max(...vs);row.cons=Math.round(median(vs));}return row;});
+  const pdata=slots.map(eh=>{const row={label:fmtHour(eh*3600000)},vs=[];
+    FC.forEach(id=>{const h=maps[id][eh];if(h&&h.precipProb!=null){row[id]=h.precipProb;vs.push(h.precipProb);}});
+    if(vs.length){row.lo=Math.min(...vs);row.hi=Math.max(...vs);row.cons=Math.round(median(vs));}return row;});
+  const srcSeries=FC.map(id=>({id,color:META[id].color,width:1.6}));
+  const consSeries={id:"cons",color:C.cons,width:2.6};
+  document.getElementById("tempchart").innerHTML=chartSVG(tdata,[...srcSeries,consSeries],
+    {height:220,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
+  document.getElementById("precipchart").innerHTML=chartSVG(pdata,[...srcSeries,consSeries],
+    {height:180,yMin:0,yMax:100,band:{loKey:"lo",hiKey:"hi",color:"rgba(58,74,82,0.12)"}});
+  document.getElementById("tempcap").innerHTML=
+    `<span><b style="color:${C.cons}">━</b> consensus (median)</span><span><b style="color:rgba(58,74,82,0.45)">▣</b> source spread</span>`+
+    FC.map(id=>`<span><span class="dot" style="background:${META[id].color}"></span>${META[id].short}</span>`).join("");
+}
+
+function renderWeek(){
+  const keys=[];FC.forEach(id=>(okd(id)?.daily||[]).forEach(d=>{if(!keys.find(k=>k.key===d.key))keys.push({key:d.key,ms:d.ms});}));
+  keys.sort((a,b)=>a.ms-b.ms);
+  const ens=state.ensemble?.status==="ok"?state.ensemble.data:null;
+  const rows=keys.slice(0,7).map(({key,ms})=>{
+    const highs=FC.map(id=>(okd(id)?.daily||[]).find(x=>x.key===key)?.tMax).filter(v=>v!=null);
+    const row={label:fmtDay(ms)};
+    if(highs.length)row.cons=Math.round(median(highs));
+    const e=ens?ens.daily.find(d=>d.key===key):null;
+    if(e&&e.p10!=null){row.eLo=e.p10;row.eHi=e.p90;row.eMed=Math.round(e.p50);}
+    else if(highs.length){row.eLo=Math.min(...highs);row.eHi=Math.max(...highs);}
+    return row;});
+  const bandColor=ens?"rgba(31,111,178,0.16)":"rgba(58,74,82,0.12)";
+  const series=[];
+  if(ens)series.push({id:"eMed",color:C.nws,width:2.4});
+  series.push({id:"cons",color:C.cons,width:2.2,dash:"5 4"});
+  document.getElementById("weekchart").innerHTML=chartSVG(rows,series,
+    {height:200,xEvery:1,band:{loKey:"eLo",hiKey:"eHi",color:bandColor},yFmt:v=>Math.round(v)+"°"});
+  document.getElementById("weekcap").innerHTML=ens
+    ? `<span><b style="color:rgba(31,111,178,0.5)">▣</b> ensemble 10–90% (${ens.members} GFS runs)</span><span><b style="color:${C.nws}">━</b> ensemble median high</span><span><b style="color:${C.cons}">┄</b> 4-model consensus high</span>`
+    : `<span><b style="color:rgba(58,74,82,0.45)">▣</b> model high spread</span><span><b style="color:${C.cons}">┄</b> consensus high</span><span style="color:${C.bad}">ensemble unavailable</span>`;
+}
+
+function renderDaily(){
+  const keys=[];FC.forEach(id=>(okd(id)?.daily||[]).forEach(d=>{if(!keys.find(k=>k.key===d.key))keys.push({key:d.key,ms:d.ms});}));
+  keys.sort((a,b)=>a.ms-b.ms);
+  let html="";
+  if(!keys.length)html='<span class="sub">Loading…</span>';
+  keys.slice(0,7).forEach(({key,ms})=>{
+    const recs=FC.map(id=>({...META[id],d:(okd(id)?.daily||[]).find(x=>x.key===key)}));
+    const range=(arr)=>{const v=arr.filter(x=>x!=null);return v.length>1?Math.max(...v)-Math.min(...v):(v.length?0:null);};
+    const tR=range(recs.map(r=>r.d?.tMax)),pR=range(recs.map(r=>r.d?.precipProbMax)),wR=range(recs.map(r=>r.d?.gustMax));
+    const tL=level(tR,3,6),pL=level(pR,20,40),wL=level(wR,8,15);
+    let cs="";recs.forEach(r=>{cs+=`<span><span class="dot" style="background:${r.color}"></span>${r.short} <span style="color:${C.ink}">${r.d?.tMax!=null?Math.round(r.d.tMax):"–"}<span style="color:${C.muted}">/${r.d?.tMin!=null?Math.round(r.d.tMin):"–"}</span></span></span>`;});
+    const sq=(lvl,ltr,title)=>`<b style="background:${lvl?LCOL[lvl]:C.line};color:${lvl?"#fff":C.muted}" title="${title}">${ltr}</b>`;
+    const agg=`<div class="agg">${sq(tL,"T","High temp spread "+(tR!=null?tR.toFixed(0)+"°":"n/a"))}${sq(pL,"P","Precip-chance spread "+(pR!=null?pR.toFixed(0)+"%":"n/a"))}${sq(wL,"W","Gust spread "+(wR!=null?wR.toFixed(0)+" mph":"n/a"))}</div>`;
+    html+=`<div class="day"><div class="dname"><div class="d">${fmtDay(ms)}</div><div class="n">${fmtDateNum(ms)}</div></div><div class="cells">${cs}</div>${agg}</div>`;});
+  document.getElementById("daily").innerHTML=html;
+}
+
+function nowcastTier(c){
+  const p=c.precip??0;let tier=0;
+  if(p>=0.06)tier=3;else if(p>=0.02)tier=2;else if(p>=0.005)tier=1;else if(p>0)tier=0.5;
+  const sn=c.snow??0,rn=c.rain??0;let type="rain";
+  if(sn>0&&rn>0)type="mix";else if(sn>0)type="snow";
+  return {tier,type,amt:p};
+}
+const NC_COLOR={
+  rain:{0.5:"#8BC34A",1:"#8BC34A",2:"#8BC34A",3:"#8BC34A"},
+  snow:{0.5:"#4A90D9",1:"#4A90D9",2:"#4A90D9",3:"#4A90D9"},
+  mix:{0.5:"#8E5FC4",1:"#8E5FC4",2:"#8E5FC4",3:"#8E5FC4"},
+};
+const NC_H={0.5:14,1:38,2:66,3:100};
+function ncCells(minutely){if(!minutely)return null;const now=Date.now();
+  return minutely.filter(c=>c.ms+900000>now&&c.ms<now+7200000).slice(0,8);}
+function ncOnset(cells){if(!cells)return null;for(const c of cells){if((c.precip??0)>=0.005)return c;}return null;}
+function obsPrecipNow(){
+  const o=okd("obs")?.current;if(!o||!o.conditions)return null;
+  const wet=/rain|snow|drizzle|thunder|sleet|shower|wintry|ice pellet|hail|squall|freezing/i.test(o.conditions);
+  return {text:o.conditions,wet};
+}
+
+function renderNowcast(){
+  const el=document.getElementById("nowcast");
+  const rows=NOW_SRC.map(s=>{const st=state.now[s.id]||{};return {...s,status:st.status,cells:st.status==="ok"?ncCells(st.data.minutely):null};});
+  const okRows=rows.filter(r=>r.cells&&r.cells.length);
+  const PROB_SRC={hrrr:"gfs",nicon:"icon",necmwf:"ecmwf"};
+  const probOf=r=>maxProbNext(okd(PROB_SRC[r.id])?.hourly,2);
+  const nwsProb=maxProbNext(okd("nws")?.hourly,2);
+  if(!okRows.length){
+    const allErr=rows.every(r=>r.status==="error");
+    el.innerHTML=`<div class="sub">${allErr?"Nowcast feed unavailable. Try Refresh.":"Loading nowcast…"}</div>`;
+    return;}
+  const summarize=r=>{const o=ncOnset(r.cells);const prob=probOf(r);
+    if(!o){
+      if(prob!=null&&prob>=50)return {dry:false,mins:null,prob,text:`${prob}% chance, low amounts`};
+      return {dry:true,mins:null,prob,text:prob!=null?`dry · ${prob}% chance`:"dry next 2h"};
+    }
+    const mins=Math.max(0,Math.round((o.ms-Date.now())/60000));const t=nowcastTier(o).type;
+    const word=t==="snow"?"Snow":t==="mix"?"Wintry mix":"Rain";
+    return {dry:false,mins,word,prob,text:(mins<=7?`${word} now`:`${word} in ~${mins}m`)+(prob!=null?` · ${prob}%`:"")};};
+  const sums={};okRows.forEach(r=>sums[r.id]=summarize(r));
+  const primary=okRows.find(r=>r.id==="hrrr")||okRows[0];
+  const amountWet=okRows.filter(r=>sums[r.id].mins!=null);
+  const probs=[...okRows.map(r=>sums[r.id].prob),nwsProb].filter(x=>x!=null);
+  const maxProbAll=probs.length?Math.max(...probs):null;
+  let headline,chip,chipCol;
+  if(amountWet.length===0){
+    if(maxProbAll!=null&&maxProbAll>=50){chip="Possible · low amounts";chipCol=C.med;
+      headline=`No measurable precipitation is modeled in the next 2 hours, but chance of precip runs up to ${maxProbAll}%.`;}
+    else{chip="All clear";chipCol=C.good;
+      headline=`No precipitation expected in the next 2 hours${maxProbAll!=null?` (chance peaks at ${maxProbAll}%)`:""}.`;}
+  }else{
+    const pHas=sums[primary.id].mins!=null;
+    headline=pHas
+      ? `${sums[primary.id].word} ${sums[primary.id].mins<=7?"is starting now":"expected in ~"+sums[primary.id].mins+" min"} per ${primary.name}${primary.native?" (radar-fed)":""}.`
+      : `${primary.name} shows little accumulation, but ${amountWet.length} source${amountWet.length>1?"s":""} model precipitation within 2h.`;
+    if(amountWet.length===okRows.length){
+      const mins=amountWet.map(r=>sums[r.id].mins);const sp=Math.max(...mins)-Math.min(...mins);
+      if(sp>=30){chip="Timing split ~"+sp+"m";chipCol=C.med;}else{chip="Sources agree";chipCol=C.good;}
+    }else{chip="Sources split";chipCol=C.bad;}
+  }
+  let strips="";
+  rows.forEach(r=>{
+    if(!r.cells||!r.cells.length){
+      strips+=`<div class="ncrow"><div class="nchead"><span class="dot" style="background:${r.color}"></span><span class="nm">${r.name}</span><span class="tag" style="color:${C.muted}">${r.status==="error"?"unavailable":"…"}</span></div></div>`;
+      return;}
+    const s=sums[r.id];const anyWet=r.cells.some(c=>nowcastTier(c).tier>0);let cells="";
+    if(!anyWet){
+      cells=`<div style="flex:1;display:flex;align-items:center;justify-content:center;color:${C.muted};font-size:12px">no measurable precip modeled</div>`;
+    }else{
+      r.cells.forEach(c=>{const tc=nowcastTier(c);
+        if(tc.tier===0){cells+=`<div class="nccell"><div class="ncnone"></div></div>`;}
+        else{const col=NC_COLOR[tc.type][tc.tier];
+          cells+=`<div class="nccell" title="${fmtTime(c.ms)} · ${(c.precip||0).toFixed(3)} in ${tc.type}"><div class="ncbar" style="height:${NC_H[tc.tier]}%;background:${col}"></div></div>`;}});
+      for(let i=r.cells.length;i<8;i++)cells+=`<div class="nccell"><div class="ncnone"></div></div>`;
+    }
+    strips+=`<div class="ncrow"><div class="nchead"><span class="dot" style="background:${r.color}"></span><span class="nm">${r.name}</span>`+
+      `<span class="tag" style="color:${r.native?C.gfs:C.muted}">${r.native?"native 15-min":"interpolated"}</span>`+
+      `<span class="onset">${esc(s.text)}</span></div><div class="ncbars">${cells}</div></div>`;});
+  const nwsLine=nwsProb!=null?`<div class="sub" style="margin-top:8px">NWS official: ${nwsProb}% chance of precip in the next 2h (no sub-hourly feed).</div>`:"";
+  const obs=obsPrecipNow();
+  const obsLine=obs&&obs.wet?`<div class="sub" style="margin:2px 0 8px"><b style="color:${C.nws}">Observed now at MSP:</b> ${esc(obs.text)}. The station shows active precip even where a model run underplays it.</div>`:"";
+  const legend=`<div class="nclegend">
+    <span class="sw"><i style="background:#8BC34A"></i>Rain</span>
+    <span class="sw"><i style="background:#4A90D9"></i>Snow</span>
+    <span class="sw"><i style="background:#8E5FC4"></i>Mix</span>
+    <span style="color:var(--line)">|</span><span>bar height = amount intensity · % = hourly chance</span></div>`;
+  el.innerHTML=`<div class="nchead-line"><span class="chip" style="background:${chipCol}">${chip}</span>`+
+    `<span style="font-size:14px;font-weight:600">${esc(headline)}</span></div>`+
+    obsLine+
+    `<div>${strips}</div>`+
+    `<div class="ncaxis"><span>Now</span><span>+30m</span><span>+60m</span><span>+90m</span><span>+2h</span></div>`+
+    nwsLine+legend+
+    `<div class="note">Each row is the same 2-hour timeline in 15-minute steps. Only HRRR (NOAA's 1 km radar-fed model) is genuinely sub-hourly; ICON and ECMWF have no sub-hourly feed and are interpolated from their hourly forecasts, so they read smoother. These are model forecasts, not live radar: a stale or coarse run can show ~0 amount even while it's raining, which is why the Observed line anchors on the actual MSP station. The % is each source's hourly chance of precip. AccuWeather MinuteCast uses 1-minute resolution; see the Pirate Weather panel.</div>`;
+}
+
+function pwTier(inHr){const v=inHr||0;if(v<0.002)return 0;if(v<0.017)return 0.5;if(v<0.1)return 1;if(v<0.4)return 2;return 3;}
+const PW_H={0.5:16,1:42,2:70,3:100};
+function pwType(t){return t==="snow"?"snow":t==="sleet"?"mix":"rain";}
+function pwCells(minutely){if(!minutely)return [];const now=Date.now();return minutely.filter(p=>p.ms+60000>now&&p.ms<now+3600000).slice(0,60);}
+function pwKeyForm(msg){
+  return `<div class="sub" style="margin-bottom:6px">${esc(msg)}</div>`+
+    `<div class="pwkey"><input id="pw-input" type="text" placeholder="Pirate Weather API key" autocomplete="off" spellcheck="false"/>`+
+    `<button id="pw-save">Save key</button></div>`+
+    `<div class="note">Stored only in this browser on this device, and sent only to Pirate Weather. On some iOS setups local storage may not persist between sessions; if so, you'll re-enter it each time.</div>`;
+}
+function pwChangeLink(){return `<div style="margin-top:8px"><button class="pwlink" id="pw-change">change / remove key</button></div>`;}
+function bindPwForm(){
+  const save=document.getElementById("pw-save");
+  if(save)save.onclick=()=>{const v=(document.getElementById("pw-input").value||"").trim();if(!v)return;setPwKey(v);loadAll();};
+  const inp=document.getElementById("pw-input");
+  if(inp)inp.onkeydown=(e)=>{if(e.key==="Enter"){const v=(inp.value||"").trim();if(v){setPwKey(v);loadAll();}}};
+  const chg=document.getElementById("pw-change");
+  if(chg)chg.onclick=()=>{setPwKey("");state.pw={status:"nokey"};render();};
+}
+function renderPirate(){
+  const el=document.getElementById("pirate");
+  const st=state.pw||{status:"nokey"};
+  if(st.status==="nokey"){el.innerHTML=pwKeyForm("Enter your free Pirate Weather API key to enable a true 1-minute, 60-minute precipitation nowcast.");bindPwForm();return;}
+  if(st.status==="loading"){el.innerHTML=`<div class="sub">Loading Pirate Weather…</div>`;return;}
+  if(st.status==="error"){
+    const hint=st.error==="key rejected"?"That key was rejected. Check it and re-enter.":"Couldn't reach Pirate Weather (network or CORS). Try Refresh, or re-enter the key.";
+    el.innerHTML=pwKeyForm(hint)+`<div class="note">Error: ${esc(st.error||"failed")}</div>`;bindPwForm();return;}
+  const data=st.data||{};const cells=pwCells(data.minutely);
+  if(!cells.length){el.innerHTML=`<div class="sub">Pirate Weather connected but returned no minute data for right now.</div>`+pwChangeLink();bindPwForm();return;}
+  let onset=null;for(const p of cells){if((p.intensity||0)>=0.017){onset=p;break;}}
+  const maxProb=Math.max(0,...cells.map(p=>p.prob!=null?p.prob:0));
+  const maxInten=Math.max(0,...cells.map(p=>p.intensity||0));
+  const wetWindow=maxInten>=0.005||onset!=null;
+  const peakPct=Math.round(maxProb*100);
+  let chip,chipCol;
+  if(onset){const m=Math.max(0,Math.round((onset.ms-Date.now())/60000));chip=m<=1?"Precip now":"Precip in ~"+m+"m";chipCol=m<=15?C.bad:C.med;}
+  else if(maxProb>=0.5){chip="Possible";chipCol=C.med;}
+  else{chip="Clear 60m";chipCol=C.good;}
+  const cu=data.currently||{};
+  const T=cu.temperature!=null?Math.round(cu.temperature)+"°":null;
+  const inten=cu.precipIntensity||0;
+  const ppNow=cu.precipProbability!=null?Math.round(cu.precipProbability*100):null;
+  let cond=null;
+  const typeWord=(cu.precipType&&cu.precipType!=="none")?cu.precipType:null;
+  if(inten>=0.017){const tt=pwTier(inten);const w=tt>=3?"heavy":tt>=2?"moderate":"light";cond=`${w} ${typeWord||"precip"} now`;}
+  else if(ppNow!=null&&ppNow>=5){cond=`${ppNow}% chance${typeWord?" of "+typeWord:" of precip"}`;}
+  else{cond="no precip in forecast";}
+  const nowLine=[T,cond].filter(Boolean).join(" · ");
+  const pwObs=obsPrecipNow();
+
+  let intensityBlock;
+  if(wetWindow){
+    let bars="";
+    cells.forEach(p=>{const tier=pwTier(p.intensity);
+      if(tier===0){bars+=`<div class="pwcell"></div>`;}
+      else{const col=NC_COLOR[pwType(p.type)][tier];
+        bars+=`<div class="pwcell" title="${fmtTime(p.ms)} · ${(p.intensity||0).toFixed(3)} in/hr${p.prob!=null?" · "+Math.round(p.prob*100)+"%":""}"><div class="pwbar" style="height:${PW_H[tier]}%;background:${col}"></div></div>`;}});
+    for(let i=cells.length;i<60;i++)bars+=`<div class="pwcell"></div>`;
+    intensityBlock=`<div class="pwsublabel">Precipitation intensity</div><div class="pwbars">${bars}</div>`;
+  }else{
+    intensityBlock=`<div class="pwsublabel">Precipitation intensity</div><div class="pwdry"><span>No precipitation in the next 60 minutes</span><span class="base"></span></div>`;
+  }
+
+  let spark="";
+  cells.forEach(p=>{const a=p.prob!=null?Math.round(p.prob*100):0;spark+=`<i style="height:${Math.max(2,a)}%" title="${fmtTime(p.ms)} · ${a}% chance"></i>`;});
+  for(let i=cells.length;i<60;i++)spark+=`<i style="height:2%;opacity:.2"></i>`;
+  const sparkBlock=`<div class="pwsublabel">Chance of precip${peakPct>0?` &mdash; peak ${peakPct}%`:""}</div><div class="pwspark">${spark}</div>`;
+
+  const legend=wetWindow?`<div class="nclegend">
+    <span class="sw"><i style="background:#8BC34A"></i>Rain</span>
+    <span class="sw"><i style="background:#4A90D9"></i>Snow</span>
+    <span class="sw"><i style="background:#8E5FC4"></i>Sleet</span>
+    <span style="color:var(--line)">|</span><span>bar height = how hard it's falling</span></div>`:"";
+
+  const pwObsLine=pwObs&&pwObs.wet?`<div class="sub" style="margin:2px 0 6px"><b style="color:${C.nws}">Observed now at MSP:</b> ${esc(pwObs.text)}${!wetWindow?", but Pirate's minute model is reading dry and lagging the actual rain":""}.</div>`:"";
+  el.innerHTML=`<div class="nchead-line"><span class="chip" style="background:${chipCol}">${chip}</span>`+
+    `<span style="font-size:14px;font-weight:600">${esc(data.summary||"Minute-by-minute precipitation")}</span></div>`+
+    `${nowLine?`<div class="sub" style="margin-bottom:4px">Now: ${esc(nowLine)}</div>`:""}`+
+    pwObsLine+
+    intensityBlock+sparkBlock+
+    `<div class="ncaxis"><span>Now</span><span>+15m</span><span>+30m</span><span>+45m</span><span>+60m</span></div>`+
+    legend+pwChangeLink()+
+    `<div class="note">Minute-by-minute nowcast from Pirate Weather (HRRR-derived), next 60 minutes at 1-minute resolution. It's a model nowcast, not live radar, so during spotty or just-started rain it can read dry, which is why the Observed line anchors on the actual MSP station. When dry the intensity track is flat by design; the blue track shows how the chance of precip moves minute to minute. Your key is stored only on this device.</div>`;
+  bindPwForm();
+}
+
+function renderStatus(){
+  let html="";
+  ALL.forEach(id=>{const st=state.sources[id],ok=st.status==="ok",ld=st.status==="loading";
+    const col=ld?C.muted:ok?C.good:C.bad,txt=ld?"loading…":ok?"connected":"failed: "+st.error;
+    html+=`<div class="statusrow"><span><span class="dot" style="background:${META[id].color}"></span> ${META[id].name}</span><span class="s" style="color:${col}">${esc(txt)}</span></div>`;});
+  [["ensemble","GFS ensemble (uncertainty cone)",state.ensemble],["air","Air quality",state.air]].forEach(([k,name,st])=>{
+    const ok=st.status==="ok",ld=st.status==="loading";const col=ld?C.muted:ok?C.good:C.bad;
+    const txt=ld?"loading…":ok?(k==="ensemble"?`connected · ${st.data.members} members`:"connected"):"unavailable";
+    html+=`<div class="statusrow aux"><span><span class="dot" style="background:${C.muted}"></span> ${name} <span class="tag" style="color:${C.muted}">context</span></span><span class="s" style="color:${col}">${esc(txt)}</span></div>`;});
+  NOW_SRC.forEach(s=>{const st=state.now[s.id]||{};const ok=st.status==="ok",ld=st.status==="loading";
+    const col=ld?C.muted:ok?C.good:C.bad;const txt=ld?"loading…":ok?"connected":"unavailable";
+    html+=`<div class="statusrow aux"><span><span class="dot" style="background:${s.color}"></span> ${s.name} nowcast <span class="tag" style="color:${C.muted}">2h</span></span><span class="s" style="color:${col}">${esc(txt)}</span></div>`;});
+  {const st=state.pw||{};const map={ok:["connected",C.good],loading:["loading…",C.muted],error:["unavailable: "+(st.error||""),C.bad],nokey:["no key entered",C.muted]};
+    const v=map[st.status]||["—",C.muted];
+    html+=`<div class="statusrow aux"><span><span class="dot" style="background:${C.nws}"></span> Pirate Weather <span class="tag" style="color:${C.muted}">1-min</span></span><span class="s" style="color:${v[1]}">${esc(v[0])}</span></div>`;}
+  document.getElementById("status").innerHTML=html;
+}
+
+function render(){
+  const n=ALL.filter(id=>state.sources[id].status==="ok").length;
+  document.getElementById("updated").textContent=state.updatedAt?`Updated ${fmtTime(state.updatedAt)} · ${n}/5 sources`:"Loading sources…";
+  renderLegend();renderToday();renderNowcast();renderPirate();renderNowSummary();renderSpread();renderGrid();
+  renderHourlyCharts();renderWeek();renderDaily();renderStatus();
+}
+
+document.getElementById("refresh").addEventListener("click",loadAll);
+renderLegend();
+loadAll();
+</script>
+</body>
+</html>
