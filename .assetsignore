@@ -2,4 +2,5 @@
 .wrangler
 README.md
 wrangler.jsonc
+CLAUDE.md
 .gitignore
