@@ -1,1 +1,1 @@
-# Minneapolis-weather
+# minneapolis-weather
