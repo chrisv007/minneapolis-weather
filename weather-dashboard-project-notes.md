@@ -100,7 +100,7 @@ Helpers: `cur(id)` = current conditions, `okd(id)` = full data when status ok.
    scrolls sideways on narrow screens with CSS scroll-shadow cues.
 5. **Next 24 hours** — temperature and precip-probability line charts with a
    min–max ribbon and a bold consensus (median) line.
-6. **7-day high temperature & uncertainty** — see below.
+6. **7-day outlook** — see below.
 7. **Pirate Weather — minute by minute** — 1-minute intensity + chance track for
    the next 60 minutes (only when a key is entered).
 8. **Source status** — per-feed connection state.
@@ -143,28 +143,57 @@ Precip **intensity tiers** for the bar charts:
 - Pirate (`pwTier`, in/hr): <0.002 → 0, <0.017 → 0.5, <0.1 → 1, <0.4 → 2, else 3.
 - Type colors are shared: rain `#8BC34A`, snow `#4A90D9`, mix/sleet `#8E5FC4`.
 
-## 7-day high temperature & uncertainty (current design)
+## 7-day outlook (current design)
 
-Rendered as a **per-day range-bar list** (not a line chart), because the goal is
-to read each day's high *and* its uncertainty at a glance on a phone:
+Rendered as a **per-day list of expandable rows** (`<details>`/`<summary>`, no
+JS wiring needed). The goal is a headline that scans cleanly down the week while
+the full per-model triangulation stays one tap away. This section used to show
+only high temperature; it now carries temp, precipitation, and wind.
 
-- One **shared temperature scale** across all seven rows so bars are directly
-  comparable; the scale endpoints are printed in a footer row.
-- Each day: a horizontal bar spanning the **ensemble 10–90% range**, a tick at
-  the **ensemble median** (the best-estimate high), and — when it diverges by
-  ≥1° — a hollow marker for the **4-model consensus** high.
-- The numeric high and the low–high range sit on the right of each row.
-- Wider bar = less certain; the cone visibly widens toward the far-out days.
-- Fallback when the ensemble feed is down: the bar shows the four-model
+**Headline (always visible summary), a median of the four forecasts:**
+
+- A **condition icon** (hand-built inline SVG, no external assets): sun, sun +
+  cloud, cloud, fog, rain cloud, snow cloud, wintry mix, thunderstorm. The icon
+  reflects the **median condition across the sources** — see icon logic below.
+- **Median high / low** temperature.
+- **Median precip chance** with a type-colored dot (green rain · blue snow ·
+  purple mix) and, when modeled, the **median amount** (liquid inches, or snow
+  inches on a snow day).
+- **Median wind gust.**
+- The **agreement squares** (T / P / W) for high temp, precip chance, and gusts
+  (green agree · amber some spread · red split), same thresholds as before.
+- A second summary line holds the **temperature-high uncertainty bar**: a
+  horizontal bar spanning the **ensemble 10–90% range**, a tick at the
+  **ensemble median**, a hollow marker for the **4-model consensus** high when
+  it diverges by ≥1°, and the numeric 10–90 range on the right. One **shared
+  temperature scale** across all seven rows (endpoints printed in a footer)
+  keeps bars comparable; the cone visibly widens toward the far-out days.
+  Fallback when the ensemble feed is down: the bar shows the four-model
   lowest–highest spread and the consensus median, with an "ensemble unavailable"
   note.
 
-Each day's row also carries, on a second line inside the same row, the
-**per-source high/low readouts** (NWS 88/68 · GFS 90/76 · …) and the
-**agreement squares** (T / P / W) showing which sources agree on high temp,
-precip chance, and gusts (green / amber / red). This used to be a separate
-per-day list below the bars; it was merged into one row per day so the reader
-doesn't cross-reference two lists with duplicate day labels.
+**Expanded detail (tap a day):** a compact per-source table — one row each for
+NWS / GFS / ECMWF / ICON with that model's own **Hi/Lo, precip chance, precip
+amount, and gust**, plus a **Median** footer row. Provenance stays honest:
+NWS publishes no precip amount and ECMWF no precip chance, both shown as `n/a`
+rather than a fabricated value.
+
+### Icon / median-condition logic
+
+Each source is mapped to one of eight shared categories
+(`clear, partlycloudy, cloudy, fog, rain, sleet, snow, thunder`):
+
+- Model sources (GFS/ECMWF/ICON) map their **WMO `weather_code`** via
+  `codeCat()`.
+- NWS has no code, only a text `shortForecast`, so `textCat()` classifies that
+  string (checking "mostly sunny"/"partly" before generic "sunny"/"cloud" so
+  partly-cloudy wording doesn't fall through to clear or cloudy).
+
+`dayCat()` takes the **modal** category across whatever sources reported;
+ties break toward the more significant weather (thunder > snow > … > clear) so
+a genuine split doesn't hide an active-weather day behind a calm icon. The dot
+color for the precip type follows the chosen category (snow → blue, sleet →
+purple, everything else → green rain).
 
 ## Design conventions
 
