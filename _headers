@@ -1,0 +1,10 @@
+# Cloudflare Workers Static Assets reads this file to set response headers.
+# The dashboard is a single app shell (index.html) that fetches live weather
+# data at runtime, so the HTML/JS itself changes only on deploy. Without an
+# explicit Cache-Control, browsers fall back to heuristic caching and can keep
+# serving an old index.html after a deploy. "no-cache" lets the browser store
+# the file but forces it to revalidate with the server (via ETag) on every
+# load, so a new deploy shows up immediately while unchanged loads still return
+# a cheap 304.
+/*
+  Cache-Control: no-cache

@@ -277,6 +277,7 @@ This repo deploys through Cloudflare Workers Builds, connected directly to this 
 2. Cloudflare watches the `main` branch. Any push to `main` automatically triggers a build and deploy on Cloudflare's own servers.
 3. The deploy command Cloudflare runs is `npx wrangler deploy`, using a Cloudflare API token stored inside the Cloudflare dashboard, scoped to this project. That token lives on Cloudflare's side, not in this local environment, not in this repo, and not in any environment variable available here.
 4. Static assets are served from the repo root per `wrangler.jsonc` (`assets.directory: "./"`). `.assetsignore` excludes non-site files (`README.md`, `wrangler.jsonc`, `CLAUDE.md`, `weather-dashboard-project-notes.md`, `.gitignore`, `.git`) from being served as public assets.
+5. The `_headers` file (a Cloudflare Workers Static Assets convention, read from the assets root and not itself served) sets `Cache-Control: no-cache` on all paths. Without it, Workers Static Assets sends no explicit `Cache-Control` on the HTML, so browsers apply heuristic caching and can keep serving an old `index.html` after a deploy. `no-cache` forces revalidation on every load (cheap 304 via ETag when unchanged) so a new deploy shows up immediately. Don't delete it unless you replace it with an equivalent caching rule.
 
 **What this means for you, Claude Code:**
 - Never run `wrangler deploy`, `wrangler pages deploy`, or any deploy command yourself in this local environment.
