@@ -122,29 +122,46 @@
     border-radius:8px;padding:9px 10px;flex:1 1 200px;min-width:0;color:var(--ink);}
   .pwkey button{flex:0 0 auto;}
   .pwlink{font-size:11px;color:var(--nws);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;font-family:inherit;}
-  /* 7-day high-temperature range bars */
+  /* 7-day outlook */
   .wk{margin-top:2px;}
-  .wkrow{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);}
-  .wkrow:first-child{border-top:none;}
-  .wkday{width:46px;flex:0 0 auto;}
-  .wkday .d{font-size:14px;font-weight:600;line-height:1.1;}
-  .wkday .n{font-size:10px;color:var(--muted);}
-  .wkbody{flex:1;min-width:0;}
-  .wkmain{display:flex;align-items:center;gap:10px;}
-  .wksrc{display:flex;flex-wrap:wrap;gap:3px 10px;align-items:center;margin-top:6px;font-family:var(--mono);}
-  .wksrc span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;}
+  .wd{border-top:1px solid var(--line);}
+  .wd:first-child{border-top:none;}
+  .wd[open]{background:#F7FAF9;border-radius:8px;margin:2px -6px;}
+  .wd-sum{list-style:none;cursor:pointer;display:block;padding:10px 6px;}
+  .wd-sum::-webkit-details-marker{display:none;}
+  .wd-a{display:flex;align-items:center;gap:8px;}
+  .wd-day{width:38px;flex:0 0 auto;}
+  .wd-day .d{font-size:14px;font-weight:600;line-height:1.1;}
+  .wd-day .n{font-size:10px;color:var(--muted);}
+  .wd-icon{flex:0 0 auto;width:28px;height:28px;display:flex;align-items:center;justify-content:center;}
+  .wd-metrics{flex:1;display:flex;align-items:center;gap:12px;min-width:0;font-family:var(--mono);}
+  .wd-m{display:flex;flex-direction:column;line-height:1.1;}
+  .wd-m .mv{font-size:15px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:4px;}
+  .wd-m .mv .lo{font-size:12px;font-weight:400;color:var(--muted);}
+  .wd-m .ms{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-top:1px;}
+  .wd-temp{min-width:52px;}
+  .wd-pcp{min-width:44px;}
+  .wd-wnd{min-width:26px;}
+  .wd-chev{width:13px;height:13px;color:var(--muted);flex:0 0 auto;transition:transform .15s ease;}
+  .wd[open] .wd-chev{transform:rotate(180deg);}
+  .wd-b{display:flex;align-items:center;gap:10px;margin-top:9px;padding-left:46px;}
+  .wd-range{width:64px;flex:0 0 auto;text-align:right;font-size:10px;color:var(--muted);font-family:var(--mono);}
+  .wd-detail{padding:2px 6px 4px 46px;}
+  .wd-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
+  .wd-tbl th,.wd-tbl td{padding:5px 6px;text-align:right;white-space:nowrap;}
+  .wd-tbl th:first-child,.wd-tbl td:first-child{text-align:left;}
+  .wd-tbl th{font-size:10px;color:var(--muted);font-weight:600;}
+  .wd-tbl tbody tr{border-top:1px solid var(--line);}
+  .wd-tbl tfoot td{border-top:1px solid var(--line);color:var(--cons);font-weight:700;}
+  .wd-scale{display:flex;justify-content:space-between;border-top:1px solid var(--line);
+    margin-top:6px;padding:6px 6px 0 46px;font-size:10px;color:var(--muted);font-family:var(--mono);}
+  /* cone track (each day's temperature uncertainty bar) */
   .wktrack{position:relative;flex:1;height:20px;}
   .wkaxis{position:absolute;left:0;right:0;top:9px;height:2px;background:var(--line);border-radius:2px;}
   .wkbar{position:absolute;top:6px;height:8px;border-radius:4px;}
   .wkmed{position:absolute;top:1px;width:3px;height:18px;border-radius:2px;transform:translateX(-50%);}
   .wkcons{position:absolute;top:5px;width:9px;height:9px;border:2px solid var(--cons);border-radius:50%;
     background:var(--panel);transform:translateX(-50%);box-sizing:border-box;}
-  .wknum{width:76px;flex:0 0 auto;text-align:right;font-family:var(--mono);}
-  .wknum .wkhi{font-size:16px;font-weight:700;line-height:1.05;}
-  .wknum .wkrange{font-size:10px;color:var(--muted);}
-  .wkscale{border-top:1px solid var(--line);padding-top:6px;}
-  .wkscale .wknum{font-size:10px;color:var(--muted);font-weight:400;font-family:inherit;}
-  .wkends{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:var(--mono);}
 </style>
 </head>
 <body>
@@ -191,10 +208,11 @@
   </div>
 
   <div class="panel">
-    <h2>7-day high temperature &amp; uncertainty</h2>
+    <h2>7-day outlook</h2>
+    <div class="sub" style="margin:-4px 0 8px;">Each day's headline is the median of the four forecasts. Tap a day for every model's numbers.</div>
     <div class="chart" id="weekchart"></div>
     <div class="cap" id="weekcap"></div>
-    <div class="note">Each day: high/low per source, and agreement squares (T = high temp, P = precip chance, W = wind gusts; green agree · amber some spread · red split).</div>
+    <div class="note">The icon shows the median condition across sources; the dot color marks precipitation type (green rain · blue snow · purple mix). The bar is the temperature-high uncertainty; T/P/W squares flag where sources agree on high temp, precip chance, and wind gusts (green agree · amber some spread · red split).</div>
   </div>
 
   <div class="panel">
@@ -284,7 +302,7 @@ async function fetchOpenMeteo(model){
     precipProbMax:D.precipitation_probability_max?.[i]??null,precipSum:D.precipitation_sum?.[i]??null,
     gustMax:D.wind_gusts_10m_max?.[i]??null,snowSum:cmToIn(D.snowfall_sum?.[i]),
     sunrise:D.sunrise?.[i]?D.sunrise[i]*1000:null,sunset:D.sunset?.[i]?D.sunset[i]*1000:null,
-    uvMax:D.uv_index_max?.[i]??null,conditions:WMO[D.weather_code?.[i]]??null}));
+    uvMax:D.uv_index_max?.[i]??null,wcode:D.weather_code?.[i]??null,conditions:WMO[D.weather_code?.[i]]??null}));
   return {current,hourly,daily};
 }
 function parseWind(s){if(s==null)return null;const m=String(s).match(/(\d+)/);return m?parseInt(m[1],10):null;}
@@ -639,14 +657,90 @@ function renderHourlyCharts(){
     FC.map(id=>`<span><span class="dot" style="background:${META[id].color}"></span>${META[id].short}</span>`).join("");
 }
 
+// A day's headline icon reflects the median condition across the sources. Model
+// sources carry a WMO weather code; NWS carries only a short text forecast, so
+// each is mapped to one of eight shared categories and the modal category wins
+// (ties break toward the more significant weather).
+const WX_ORDER=["clear","partlycloudy","cloudy","fog","rain","sleet","snow","thunder"];
+const WX_LBL={clear:"Clear",partlycloudy:"Partly cloudy",cloudy:"Cloudy",fog:"Fog",rain:"Rain",sleet:"Wintry mix",snow:"Snow",thunder:"Thunderstorm"};
+const WX_TYPECOL={rain:"#8BC34A",snow:"#4A90D9",mix:"#8E5FC4"};
+function codeCat(c){
+  if(c==null)return null;
+  if(c>=95)return "thunder";
+  if([71,73,75,77,85,86].includes(c))return "snow";
+  if([56,57,66,67].includes(c))return "sleet";
+  if((c>=51&&c<=65)||(c>=80&&c<=82))return "rain";
+  if(c===45||c===48)return "fog";
+  if(c===3)return "cloudy";
+  if(c===2)return "partlycloudy";
+  if(c===0||c===1)return "clear";
+  return null;
+}
+function textCat(s){
+  if(!s)return null;s=String(s).toLowerCase();
+  if(/thunder|t-storm|tstorm/.test(s))return "thunder";
+  if(/sleet|wintry|freezing|ice pellet/.test(s))return "sleet";
+  if(/snow|flurr|blizzard/.test(s))return "snow";
+  if(/rain|shower|drizzle/.test(s))return "rain";
+  if(/fog|haze|mist|smoke/.test(s))return "fog";
+  if(/mostly sunny|partly sunny|partly cloud|mostly clear/.test(s))return "partlycloudy";
+  if(/sunny|clear|fair/.test(s))return "clear";
+  if(/cloud|overcast/.test(s))return "cloudy";
+  return null;
+}
+function dayCat(recs){
+  const cats=[];
+  recs.forEach(r=>{if(!r.d)return;const c=r.id==="nws"?textCat(r.d.conditions):codeCat(r.d.wcode);if(c)cats.push(c);});
+  if(!cats.length)return null;
+  const count={};cats.forEach(c=>count[c]=(count[c]||0)+1);
+  let best=null,bestN=0;
+  WX_ORDER.forEach(c=>{if(count[c]&&(count[c]>bestN||(count[c]===bestN&&WX_ORDER.indexOf(c)>WX_ORDER.indexOf(best)))){best=c;bestN=count[c];}});
+  return best;
+}
+// Small hand-built weather glyphs (no external assets), 24x24 viewBox.
+function wxIcon(cat,size){
+  size=size||26;
+  const sun="#E8A33D",cld="#AEB9C0",cldD="#8B98A0",rain="#4A90D9",snow="#79ADDE",bolt="#E8A33D",fog="#9AA6AC";
+  const A8=[0,45,90,135,180,225,270,315];
+  const cloud=f=>`<g fill="${f}"><circle cx="9" cy="13" r="3.6"/><circle cx="13.4" cy="11.4" r="4.4"/><circle cx="16.4" cy="13.8" r="3.1"/><rect x="7" y="12.6" width="11" height="5.4" rx="2.7"/></g>`;
+  const drops=(col,xs)=>`<g stroke="${col}" stroke-width="1.7" stroke-linecap="round">`+xs.map(x=>`<line x1="${x}" y1="19.2" x2="${x-1.1}" y2="22"/>`).join("")+`</g>`;
+  const flakes=col=>`<g fill="${col}"><circle cx="9.5" cy="20.6" r="1.05"/><circle cx="13" cy="21.6" r="1.05"/><circle cx="16.5" cy="20.6" r="1.05"/></g>`;
+  const rayG=(cx,cy,ri,ro,col)=>`<g stroke="${col}" stroke-width="1.6" stroke-linecap="round">`+A8.map(a=>{const r=a*Math.PI/180;return `<line x1="${(cx+ri*Math.cos(r)).toFixed(1)}" y1="${(cy+ri*Math.sin(r)).toFixed(1)}" x2="${(cx+ro*Math.cos(r)).toFixed(1)}" y2="${(cy+ro*Math.sin(r)).toFixed(1)}"/>`;}).join("")+`</g>`;
+  let inner="";
+  switch(cat){
+    case "clear":inner=rayG(12,12,6,8.2,sun)+`<circle cx="12" cy="12" r="4.4" fill="${sun}"/>`;break;
+    case "partlycloudy":inner=rayG(8.5,8.5,3.6,5.2,sun)+`<circle cx="8.5" cy="8.5" r="2.9" fill="${sun}"/>`+cloud(cld);break;
+    case "cloudy":inner=cloud(cldD);break;
+    case "fog":inner=cloud(cld)+`<g stroke="${fog}" stroke-width="1.5" stroke-linecap="round"><line x1="7" y1="20.4" x2="17" y2="20.4"/><line x1="8.4" y1="22.6" x2="15.6" y2="22.6"/></g>`;break;
+    case "rain":inner=cloud(cld)+drops(rain,[9.5,13,16.5]);break;
+    case "snow":inner=cloud(cld)+flakes(snow);break;
+    case "sleet":inner=cloud(cld)+drops(rain,[10,15.5])+`<circle cx="13" cy="21" r="1.05" fill="${snow}"/>`;break;
+    case "thunder":inner=cloud(cldD)+`<path d="M13 17.5 L9.8 21.8 H12 L11 24 L15 19.6 H12.7 L13.6 17.5 Z" fill="${bolt}"/>`;break;
+    default:inner=cloud(cld);
+  }
+  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${WX_LBL[cat]||"condition"}">${inner}</svg>`;
+}
+
 function renderWeek(){
   const keys=[];FC.forEach(id=>(okd(id)?.daily||[]).forEach(d=>{if(!keys.find(k=>k.key===d.key))keys.push({key:d.key,ms:d.ms});}));
   keys.sort((a,b)=>a.ms-b.ms);
   const ens=state.ensemble?.status==="ok"?state.ensemble.data:null;
   const rows=keys.slice(0,7).map(({key,ms})=>{
-    const recs=FC.map(id=>({...META[id],d:(okd(id)?.daily||[]).find(x=>x.key===key)}));
+    const recs=FC.map(id=>({...META[id],id,d:(okd(id)?.daily||[]).find(x=>x.key===key)}));
     const highs=recs.map(r=>r.d?.tMax).filter(v=>v!=null);
-    const row={ms,key,recs,label:fmtDay(ms),date:fmtDateNum(ms)};
+    const lows=recs.map(r=>r.d?.tMin).filter(v=>v!=null);
+    const chances=recs.map(r=>r.d?.precipProbMax).filter(v=>v!=null);
+    const amounts=recs.map(r=>r.d?.precipSum).filter(v=>v!=null);
+    const snows=recs.map(r=>r.d?.snowSum).filter(v=>v!=null);
+    const gusts=recs.map(r=>r.d?.gustMax).filter(v=>v!=null);
+    const row={ms,key,recs,label:fmtDay(ms),date:fmtDateNum(ms),
+      mHi:highs.length?Math.round(median(highs)):null,
+      mLo:lows.length?Math.round(median(lows)):null,
+      mChance:chances.length?Math.round(median(chances)):null,
+      mAmt:amounts.length?median(amounts):null,
+      mSnow:snows.length?median(snows):null,
+      mGust:gusts.length?Math.round(median(gusts)):null,
+      cat:dayCat(recs)||"cloudy"};
     if(highs.length)row.cons=Math.round(median(highs));
     const e=ens?ens.daily.find(d=>d.key===key):null;
     if(e&&e.p10!=null){row.lo=e.p10;row.hi=e.p90;row.med=Math.round(e.p50);}
@@ -661,35 +755,63 @@ function renderWeek(){
   const span=dMax-dMin||1,pos=v=>(v-dMin)/span*100;
   const barCol=ens?"rgba(31,111,178,0.28)":"rgba(58,74,82,0.20)",medCol=ens?C.nws:C.cons;
   const range=(arr)=>{const v=arr.filter(x=>x!=null);return v.length>1?Math.max(...v)-Math.min(...v):(v.length?0:null);};
+  const chev=`<svg class="wd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
   let showCons=false,html='<div class="wk">';
   rows.forEach(r=>{
     const left=pos(r.lo),width=Math.max(pos(r.hi)-left,1.5),medP=pos(r.med);
     let consTick="";
     if(ens&&r.cons!=null&&Math.abs(r.cons-r.med)>=1){showCons=true;
       consTick=`<span class="wkcons" style="left:${pos(r.cons)}%" title="4-model consensus ${r.cons}°"></span>`;}
-    // per-source high/low detail + agreement squares live in the same row
+    // agreement squares over the same four forecasts
     const tR=range(r.recs.map(x=>x.d?.tMax)),pR=range(r.recs.map(x=>x.d?.precipProbMax)),wR=range(r.recs.map(x=>x.d?.gustMax));
     const tL=level(tR,3,6),pL=level(pR,20,40),wL=level(wR,8,15);
-    let cs="";r.recs.forEach(x=>{cs+=`<span><span class="dot" style="background:${x.color}"></span>${x.short} <span style="color:${C.ink}">${x.d?.tMax!=null?Math.round(x.d.tMax):"–"}<span style="color:${C.muted}">/${x.d?.tMin!=null?Math.round(x.d.tMin):"–"}</span></span></span>`;});
     const sq=(lvl,ltr,title)=>`<b style="background:${lvl?LCOL[lvl]:C.line};color:${lvl?"#fff":C.muted}" title="${title}">${ltr}</b>`;
     const agg=`<div class="agg">${sq(tL,"T","High temp spread "+(tR!=null?tR.toFixed(0)+"°":"n/a"))}${sq(pL,"P","Precip-chance spread "+(pR!=null?pR.toFixed(0)+"%":"n/a"))}${sq(wL,"W","Gust spread "+(wR!=null?wR.toFixed(0)+" mph":"n/a"))}</div>`;
-    html+=`<div class="wkrow"><div class="wkday"><div class="d">${r.label}</div><div class="n">${r.date}</div></div>`+
-      `<div class="wkbody"><div class="wkmain"><div class="wktrack"><div class="wkaxis"></div>`+
-      `<div class="wkbar" style="left:${left}%;width:${width}%;background:${barCol}" title="10–90% range: ${Math.round(r.lo)}–${Math.round(r.hi)}°"></div>`+
+    // median headline: temp, precip (chance + amount), wind gust, condition icon
+    const ptype=r.cat==="snow"?"snow":r.cat==="sleet"?"mix":"rain";
+    const pcol=WX_TYPECOL[ptype];
+    const tempStr=`${r.mHi!=null?r.mHi+"°":"–"}<span class="lo">/${r.mLo!=null?r.mLo+"°":"–"}</span>`;
+    const chanceStr=r.mChance!=null?`${r.mChance}%`:"–";
+    const amtVal=ptype==="snow"?r.mSnow:r.mAmt;
+    const amtStr=(amtVal!=null&&amtVal>=0.05)?(ptype==="snow"?amtVal.toFixed(1)+'" snow':amtVal.toFixed(2)+'"'):"";
+    const gustStr=r.mGust!=null?`${r.mGust}`:"–";
+    // per-source breakdown table (each model's own numbers), shown when a day is expanded
+    let tb="";r.recs.forEach(x=>{const d=x.d;
+      const hilo=d&&(d.tMax!=null||d.tMin!=null)?`${d.tMax!=null?Math.round(d.tMax):"–"}/${d.tMin!=null?Math.round(d.tMin):"–"}`:"–";
+      const ch=d&&d.precipProbMax!=null?Math.round(d.precipProbMax)+"%":"n/a";
+      const am=d?(d.precipSum!=null?(d.precipSum>=0.005?d.precipSum.toFixed(2):"0"):"n/a"):"–";
+      const gu=d&&d.gustMax!=null?Math.round(d.gustMax):"–";
+      tb+=`<tr><td><span class="dot" style="background:${x.color}"></span>${x.short}</td><td>${hilo}</td><td>${ch}</td><td>${am}</td><td>${gu}</td></tr>`;});
+    const medAmt=r.mAmt!=null?(r.mAmt>=0.005?r.mAmt.toFixed(2):"0"):"–";
+    const detail=`<table class="wd-tbl"><thead><tr><th>Source</th><th>Hi/Lo °F</th><th>Chance</th><th>Amt in</th><th>Gust</th></tr></thead>`+
+      `<tbody>${tb}</tbody>`+
+      `<tfoot><tr><td>Median</td><td>${r.mHi??"–"}/${r.mLo??"–"}</td><td>${r.mChance!=null?r.mChance+"%":"–"}</td><td>${medAmt}</td><td>${r.mGust??"–"}</td></tr></tfoot></table>`+
+      `<div class="note" style="margin-top:6px">Median is the middle of the four forecasts for each column. NWS publishes no precip amount; ECMWF no precip chance (shown n/a).`+
+      (ens&&r.cons!=null&&Math.abs(r.cons-r.med)>=1?` Ensemble median high ${r.med}° vs 4-model consensus ${r.cons}°.`:"")+`</div>`;
+    html+=`<details class="wd"><summary class="wd-sum"><div class="wd-a">`+
+      `<div class="wd-day"><div class="d">${r.label}</div><div class="n">${r.date}</div></div>`+
+      `<span class="wd-icon" title="${WX_LBL[r.cat]||""}">${wxIcon(r.cat,26)}</span>`+
+      `<div class="wd-metrics">`+
+        `<div class="wd-m wd-temp"><span class="mv">${tempStr}</span><span class="ms">hi / lo</span></div>`+
+        `<div class="wd-m wd-pcp"><span class="mv"><span class="dot" style="background:${pcol}"></span>${chanceStr}</span><span class="ms">${amtStr||"chance"}</span></div>`+
+        `<div class="wd-m wd-wnd"><span class="mv">${gustStr}</span><span class="ms">mph gust</span></div>`+
+      `</div>${agg}${chev}</div>`+
+      `<div class="wd-b"><div class="wktrack"><div class="wkaxis"></div>`+
+      `<div class="wkbar" style="left:${left}%;width:${width}%;background:${barCol}" title="high-temp range: ${Math.round(r.lo)}–${Math.round(r.hi)}°"></div>`+
       `<span class="wkmed" style="left:${medP}%;background:${medCol}" title="median high ${r.med}°"></span>${consTick}</div>`+
-      `<div class="wknum"><div class="wkhi">${r.med}°</div><div class="wkrange">${Math.round(r.lo)}–${Math.round(r.hi)}°</div></div></div>`+
-      `<div class="wksrc">${cs}${agg}</div></div></div>`;
+      `<div class="wd-range">${Math.round(r.lo)}–${Math.round(r.hi)}°</div></div>`+
+      `</summary><div class="wd-detail">${detail}</div></details>`;
   });
-  html+=`<div class="wkrow wkscale"><div class="wkday"></div><div class="wkbody"><div class="wkmain"><div class="wktrack"><div class="wkends"><span>${Math.round(dMin)}°</span><span>${Math.round(dMax)}°</span></div></div><div class="wknum">high · range</div></div></div></div>`;
+  html+=`<div class="wd-scale"><span>Temp-high scale for the bars: ${Math.round(dMin)}°</span><span>${Math.round(dMax)}°</span></div>`;
   el.innerHTML=html+'</div>';
   const sw=css=>`<span style="display:inline-block;vertical-align:middle;${css}"></span>`;
-  cap.innerHTML=ens
+  cap.innerHTML=(ens
     ? `<span>${sw(`width:3px;height:12px;border-radius:2px;background:${medCol}`)} ensemble median high (best estimate)</span>`+
-      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} 10–90% range across ${ens.members} GFS runs &mdash; wider = less certain</span>`+
+      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} 10–90% high range across ${ens.members} GFS runs &mdash; wider = less certain</span>`+
       (showCons?`<span>${sw(`width:9px;height:9px;border-radius:50%;border:2px solid ${C.cons};box-sizing:border-box`)} 4-model consensus high</span>`:"")
     : `<span>${sw(`width:3px;height:12px;border-radius:2px;background:${medCol}`)} consensus high</span>`+
-      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} model spread (lowest&ndash;highest)</span>`+
-      `<span style="color:${C.bad}">ensemble unavailable</span>`;
+      `<span>${sw(`width:16px;height:8px;border-radius:4px;background:${barCol}`)} model high spread (lowest&ndash;highest)</span>`+
+      `<span style="color:${C.bad}">ensemble unavailable</span>`);
 }
 
 function nowcastTier(c){
